@@ -33,14 +33,14 @@ import cv2
 import seaborn as sns
 #define by myself
 from utils.common import dice_coeff, count_bytes, transparent_back
-from data_fundus2d.fundus_dataloader import get_train_dataloader, get_test_dataloader
+from dsts.fundus_dataloader import get_train_dataloader, get_test_dataloader
 from nets.unet_2d import UNet, DiceLoss
 
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 BATCH_SIZE = 16
 MAX_EPOCHS = 200
-CKPT_PATH = '/data/pycode/LungCT3D/ckpt/fundus_unet_conv.pkl'
+CKPT_PATH = '/data/pycode/SFConv/ckpts/fundus_unet_conv.pkl'
 def Train():
     print('********************load data********************')
     dataloader_train = get_train_dataloader(batch_size=BATCH_SIZE, shuffle=True, num_workers=1)

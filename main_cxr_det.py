@@ -29,8 +29,7 @@ import cv2
 import seaborn as sns
 #define by myself
 from utils.common import compute_iou, count_bytes
-from data_cxr2d.vincxr_coco import get_box_dataloader_VIN
-from data_cxr2d.CVTECXR_Test import get_dataloader_CVTE
+from dsts.vincxr_coco import get_box_dataloader_VIN
 from nets.resnet import resnet18
 from nets.densenet import densenet121
 
@@ -45,7 +44,7 @@ BACKBONE_PARAMS = ['4.0.conv1.weight', '4.0.conv1.weight_v', '4.0.conv1.grouped.
 BATCH_SIZE = 8
 MAX_EPOCHS = 20
 NUM_CLASSES =  len(CLASS_NAMES_Vin)
-CKPT_PATH = '/data/pycode/LungCT3D/ckpt/vincxr_resnet_conv.pkl'
+CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_resnet_sfconv_new.pkl'
 
 def Train():
     print('********************load data********************')
@@ -126,8 +125,8 @@ def Test():
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],output_size=7,sampling_ratio=2)
     model = FasterRCNN(backbone, num_classes=NUM_CLASSES, rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler).cuda()
 
-    for name, param in backbone.named_parameters():
-        print(name,'---', param.size())
+    #for name, param in backbone.named_parameters():
+    #    print(name,'---', param.size())
     
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
@@ -248,9 +247,9 @@ def VisFeature():
     #log_writer.close() #shut up the tensorboard
 
 def main():
-    #Train()
-    #Test()
-    VisFeature()
+    Train()
+    Test()
+    #VisFeature()
 
 if __name__ == '__main__':
     main()
