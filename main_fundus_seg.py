@@ -156,7 +156,7 @@ def Test():
 
 def VisSeg():
     print('********************load data********************')
-    dataloader_test = get_test_dataloader(batch_size=1, shuffle=False, num_workers=0) #BATCH_SIZE
+    dataloader_test = get_test_dataloader(batch_size=1, shuffle=True, num_workers=0) #BATCH_SIZE
     print('********************load data succeed!********************')
 
     print('********************load model********************')
@@ -174,6 +174,20 @@ def VisSeg():
     dice_coe = []
     with torch.autograd.no_grad():
         for batch_idx, (image, mask) in enumerate(dataloader_test):
+
+            #plot goundtruth box
+            fig, ax = plt.subplots()# Create figure and axes
+            img = image.squeeze().numpy().transpose(1,2,0)
+            #msk = mask.numpy().repeat(3, axis=0).transpose(1,2,0)
+            #img =  img + msk
+            #img = np.where(img>1, 1, img)
+            ax.imshow(img)
+            fig.savefig('/data/pycode/SFConv/imgs/fundus_img.png', dpi=300, pad_inches=0, bbox_inches='tight')
+            fig, ax = plt.subplots(1)
+            ax = sns.kdeplot(img.flatten(), shade=True, color="g")
+            fig.savefig('/data/pycode/SFConv/imgs/fundus_dis.png', dpi=300, pad_inches=0, bbox_inches='tight')
+
+            """
             var_image = torch.autograd.Variable(image).cuda()
             var_out = model(var_image)
             #plot goundtruth box
@@ -185,7 +199,7 @@ def VisSeg():
             img = np.where(img>1, 1, img)
             ax.imshow(img)
             ax.axis('off')
-            fig.savefig('/data/pycode/LungCT3D/imgs/fundus_conv.jpg')
+            fig.savefig('/data/pycode/SFConv/imgs/fundus_conv.jpg')
             #img = np.uint8(255 * img) 
             #img = cv2.applyColorMap(img, cv2.COLORMAP_JET) 
             #msk = mask.numpy().squeeze()
@@ -193,12 +207,22 @@ def VisSeg():
             #msk = cv2.applyColorMap(msk, cv2.COLORMAP_JET)  
             #overlay_img = msk * 0.3 + img 
             #cv2.imwrite('/data/pycode/LungCT3D/imgs/fundus.jpg', overlay_img)
+            """
             break
 
 def main():
     #Train()
     #Test()
     VisSeg()
+    """
+    fig, ax = plt.subplots()# Create figure and axes
+    img = Image.open('/data/tmpexec/000001.jpg')
+    ax.imshow(img)
+    fig.savefig('/data/pycode/SFConv/imgs/imagenet_img.png', dpi=300, pad_inches=0, bbox_inches='tight')
+    fig, ax = plt.subplots(1)
+    ax = sns.kdeplot(np.asarray(img).flatten(), shade=True, color="g")
+    fig.savefig('/data/pycode/SFConv/imgs/imagenet_dis.png', dpi=300, pad_inches=0, bbox_inches='tight')
+    """
 
 if __name__ == '__main__':
     main()

@@ -207,6 +207,24 @@ def VisFeature():
     #log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
     with torch.autograd.no_grad():
         for batch_idx, (images, targets) in enumerate(data_loader_test):
+
+            img = images[0]
+            box = targets[0]['boxes'][0]
+            lbl = targets[0]['labels'][0]
+            #plot goundtruth box
+            fig, ax = plt.subplots(1)# Create figure and axes
+            img = img.cpu().numpy().transpose(1,2,0)
+            ax.imshow(img)
+            rect = patches.Rectangle((box[0], box[1]), box[2]-box[0], box[3]-box[1], linewidth=2, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)# add groundtruth
+            ax.text(box[0], box[1], CLASS_NAMES_Vin[lbl])
+            ax.axis('off')
+            fig.savefig('/data/pycode/SFConv/imgs/cxr_img.png', dpi=300, pad_inches=0, bbox_inches='tight')
+            fig, ax = plt.subplots(1)
+            ax = sns.kdeplot(images[0].numpy().flatten(), shade=True, color="g")
+            fig.savefig('/data/pycode/SFConv/imgs/cxr_dis.png', dpi=300, pad_inches=0, bbox_inches='tight')
+
+            """
             images = list(image.cuda() for image in images)
             targets = [{k:v.squeeze(0).cuda() for k, v in t.items()} for t in targets]
             fea_map = model.backbone(images[0].unsqueeze(0))#forward
@@ -229,7 +247,6 @@ def VisFeature():
             fig.savefig('/data/pycode/LungCT3D/imgs/img_3.jpg')
             #log_writer.add_histogram('cxr_data', img, 2)
           
-            """
             fea_map = fea_map.cpu().numpy().squeeze()
             fea_map = np.mean(fea_map, axis=0)
             #fea_map = np.maximum(fea_map, 0)
@@ -247,9 +264,9 @@ def VisFeature():
     #log_writer.close() #shut up the tensorboard
 
 def main():
-    Train()
-    Test()
-    #VisFeature()
+    #Train()
+    #Test()
+    VisFeature()
 
 if __name__ == '__main__':
     main()

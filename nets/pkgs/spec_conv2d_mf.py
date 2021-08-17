@@ -17,7 +17,7 @@ class SpecConv2d(conv._ConvNd):
     r"""
     Applies Spectral Convolution
     """
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, mf_k=10): #[1,5,10]
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, mf_k=10): #[2, 4, 6, 8, 10]
         padding = (kernel_size - 1) // 2
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
