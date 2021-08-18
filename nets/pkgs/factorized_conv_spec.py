@@ -17,7 +17,7 @@ class SpecConv2d(conv._ConvNd):
     r"""
     Applies Spectral Convolution
     """
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, mf_k=10): #[2, 4, 6, 8, 10]
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, rank_scale=0.5): #[0.5, 0.25, 0.125]
         padding = (kernel_size - 1) // 2
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
@@ -27,24 +27,26 @@ class SpecConv2d(conv._ConvNd):
         bias = False
         super(SpecConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, False, _pair(0), groups, bias, 'zeros')
 
-        #the right largest singular value of W of power iteration (PI)
-        self.register_buffer('u', torch.Tensor(1, out_channels).normal_())
         #set projected matrices
-        self._make_params(mf_k)
+        self._make_params(rank_scale)
 
-    def _make_params(self, mf_k):
+    def _make_params(self, rank_scale):
         #spectral weight
-        height = self.weight.shape[0]
-        width = self.weight.view(height, -1).shape[1]
+        height = self.weight.shape[0] * self.weight.shape[2]
+        width = self.weight.shape[1] * self.weight.shape[3] #self.weight.view(height, -1).shape[1]
+        rank_scale = max(int(round(0.5*rank_scale * min(height,width))),1)
 
-        p = nn.Parameter(torch.empty(height, mf_k), requires_grad=True)
-        q = nn.Parameter(torch.empty(mf_k, width), requires_grad=True)
+        p = nn.Parameter(torch.empty(height, rank_scale), requires_grad=True)
+        q = nn.Parameter(torch.empty(rank_scale, width), requires_grad=True)
 
         nn.init.kaiming_normal_(p.data, mode='fan_out', nonlinearity='relu')
         nn.init.kaiming_normal_(q.data, mode='fan_out', nonlinearity='relu')
 
         self.register_parameter("weight_p", p)
         self.register_parameter("weight_q", q)
+
+        #the right largest singular value of W of power iteration (PI)
+        self.register_buffer('u', torch.Tensor(1, height).normal_())
 
         #for test
         #self.shape = self.weight.size()
@@ -77,7 +79,7 @@ class SpecConv2d(conv._ConvNd):
         #if self.training:
         sigma, _u = self._power_iteration(w_hat, self.u)
         self.u.copy_(_u)
-            
+  
         #rewrite the weight
         w_hat = w_hat.view_as(self.weight)
         del self.weight
@@ -88,12 +90,13 @@ class SpecConv2d(conv._ConvNd):
     def forward(self, input):
         #self.weight = torch.empty(self.shape) #for test
         return F.conv2d(input, self.W_, self.bias, self.stride, self.padding, self.dilation, self.groups)
+        
 
 if __name__ == "__main__":
     #for debug  
     x =  torch.rand(2, 3, 16, 16).cuda()
-    sconv = SpecConv2d(in_channels=3, out_channels=16, kernel_size=5, stride=2).cuda()
-    sconv.eval()
+    sconv = SpecConv2d(in_channels=3, out_channels=16, kernel_size=5, stride=2, rank_scale=1.0).cuda()
+    #sconv.eval()
     out = sconv(x)
     print(out.shape)
 

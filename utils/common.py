@@ -30,11 +30,18 @@ def count_bytes(file_size):
             return strofsize(integer, remainder, level)
         else:
             return integer, remainder, level
+    
+    def MBofstrsize(integer, remainder, level):
+        remainder = integer % (1024*1024)
+        integer //= (1024*1024)
+        level = 2
+        return integer, remainder, level
 
     units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
-    integer, remainder, level = strofsize(int(file_size), 0, 0)
-    if level+1 > len(units):
-        level = -1
+    #integer, remainder, level = strofsize(int(file_size), 0, 0)
+    #if level+1 > len(units):
+    #    level = -1
+    integer, remainder, level = MBofstrsize(int(file_size), 0, 0)
     return ( '{}.{:>03d} {}'.format(integer, remainder, units[level]) )
 
 def compute_AUCs(gt, pred, N_CLASSES):

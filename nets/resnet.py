@@ -2,7 +2,7 @@
 """
 Spectral convolution for 2D Resnet.
 Author: Jason.Fang
-Update time: 31/07/2021
+Update time: 17/08/2021
 """
 import sys
 import math
@@ -17,9 +17,10 @@ from torch.utils.model_zoo import load_url as load_state_dict_from_url
 from torch.nn.utils import weight_norm 
 #https://github.com/pytorch/pytorch/blob/master/torch/nn/utils/spectral_norm.py
 from torch.nn.utils import spectral_norm
+from nets.pkgs.tensor_decomposition import TensorTrain, Tucker, CP
 #define by myself
-from nets.pkgs.conv_mf import TensorTrain
-from nets.pkgs.spec_conv2d_mf import SpecConv2d
+from nets.pkgs.factorized_conv_spec import SpecConv2d
+from nets.pkgs.factorized_conv_frob import FactorizedConv
 
 #https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
@@ -39,20 +40,18 @@ model_urls = {
 }
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
+
     #return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, groups=groups, bias=False, dilation=dilation)
-    #return weight_norm(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, groups=groups, bias=False, dilation=dilation))
-    #return TensorTrain(in_channels=in_planes, out_channels=out_planes, kernel_size=3, rank_scale=0.5, dimensions=2, stride=stride, padding =dilation, bias=False)
-    #return spectral_norm(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, groups=groups, bias=False, dilation=dilation))
-    return SpecConv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=3, stride=stride)
+    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.5)
+    #return SpecConv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=3, stride=stride, rank_scale=0.5)
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
-    #return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-    #return weight_norm(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False))
-    #return TensorTrain(in_channels=in_planes, out_channels=out_planes, kernel_size=1, rank_scale=0.5, dimensions=2, stride=stride, padding = 0, bias=False)
-    #return spectral_norm(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False))
-    return SpecConv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=1, stride=stride)
 
+    #return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.5)
+    #return SpecConv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=1, stride=stride, rank_scale=0.5)
+    
 class BasicBlock(nn.Module):
     expansion: int = 1
 

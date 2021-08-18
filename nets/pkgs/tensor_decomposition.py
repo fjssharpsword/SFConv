@@ -200,6 +200,6 @@ if __name__ == '__main__':
 
     for ConvClass in [TensorTrain, Tucker, CP]:
         X = torch.randn(5,16,32,32)
-        tnlayer = ConvClass(16,16,3,0.5,4,bias=False)
+        tnlayer = ConvClass(16,32,3,1.0,2,bias=False)
         #tnlayer.reset_parameters()
         print(tnlayer)
