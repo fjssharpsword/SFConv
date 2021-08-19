@@ -66,9 +66,9 @@ class DatasetGenerator(Dataset):
         train_size = int(0.8 * len(self.total_keys))#8:2
         train_keys = random.sample(self.total_keys, train_size)
         test_keys = list(set(self.total_keys).difference(set(train_keys)))
-        with open("/data/pycode/LungCT3D/data_cxr2d/trKeys.txt", "wb") as fp:   #Pickling
+        with open("/data/pycode/SFConv/dsts/trKeys.txt", "wb") as fp:   #Pickling
             pickle.dump(train_keys, fp)
-        with open("/data/pycode/LungCT3D/data_cxr2d/teKeys.txt", "wb") as fp:   #Pickling
+        with open("/data/pycode/SFConv/dsts/teKeys.txt", "wb") as fp:   #Pickling
             pickle.dump(test_keys, fp)
         """
         #0 is background
@@ -163,10 +163,10 @@ def get_box_dataloader_VIN(batch_size, shuffle, num_workers):
     vin_image_dir = '/data/fjsdata/Vin-CXR/train_val_jpg/'
   
     if shuffle==True: 
-        with open("/data/pycode//SFConv/dsts/trKeys.txt", "rb") as fp:   # Unpickling
+        with open("/data/pycode/SFConv/dsts/trKeys.txt", "rb") as fp:   # Unpickling
             key_subset = pickle.load(fp)
     else:
-        with open("/data/pycode//SFConv/dsts/teKeys.txt", "rb") as fp:   # Unpickling
+        with open("/data/pycode/SFConv/dsts/teKeys.txt", "rb") as fp:   # Unpickling
             key_subset = pickle.load(fp)
 
     dataset_box = DatasetGenerator(path_to_img_dir=vin_image_dir, path_to_dataset_file=vin_csv_file, bin_keys=key_subset)
@@ -177,7 +177,7 @@ def get_box_dataloader_VIN(batch_size, shuffle, num_workers):
 if __name__ == "__main__":
 
     #for debug   
-    data_loader_box = get_box_dataloader_VIN(batch_size=8, shuffle=True, num_workers=0)
+    data_loader_box = get_box_dataloader_VIN(batch_size=8, shuffle=False, num_workers=0)
     for batch_idx, (image, target) in enumerate(data_loader_box):
         print(len(image))
         print(len(target))

@@ -12,8 +12,7 @@ from torch.nn.utils import weight_norm
 #https://github.com/pytorch/pytorch/blob/master/torch/nn/utils/spectral_norm.py
 from torch.nn.utils import spectral_norm
 #define by myself
-from nets.pkgs.conv_mf import TensorTrain
-from nets.pkgs.spec_conv2d_mf import SpecConv2d
+from nets.pkgs.factorized_conv import FactorizedConv
 
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
@@ -24,20 +23,14 @@ class DoubleConv(nn.Module):
             mid_channels = out_channels
         self.double_conv = nn.Sequential(
 
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
-            #weight_norm(nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1)),
-            #TensorTrain(in_channels=in_channels, out_channels=mid_channels, kernel_size=3, rank_scale=0.5, dimensions=2, stride=1, padding=1, bias=False),
-            #spectral_norm(nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1)),
-            #SpecConv2d(in_channels=in_channels, out_channels=mid_channels, kernel_size=3, stride=1),
+            #nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
+            FactorizedConv(nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1), rank_scale=0.125, spec=False),
             
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
 
-            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
-            #weight_norm(nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1)),
-            #TensorTrain(in_channels=mid_channels, out_channels=out_channels, kernel_size=3, rank_scale=0.5, dimensions=2, stride=1, padding=1, bias=False),
-            #spectral_norm(nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1)),
-            #SpecConv2d(in_channels=mid_channels, out_channels=out_channels, kernel_size=3, stride=1),
+            #nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
+            FactorizedConv(nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1), rank_scale=0.125, spec=False),
 
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)

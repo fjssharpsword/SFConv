@@ -34,7 +34,7 @@ class SpecConv2d(conv._ConvNd):
         #spectral weight
         height = self.weight.shape[0] * self.weight.shape[2]
         width = self.weight.shape[1] * self.weight.shape[3] #self.weight.view(height, -1).shape[1]
-        rank_scale = max(int(round(0.5*rank_scale * min(height,width))),1)
+        rank_scale = max(int(round(rank_scale * min(height,width))),1)
 
         p = nn.Parameter(torch.empty(height, rank_scale), requires_grad=True)
         q = nn.Parameter(torch.empty(rank_scale, width), requires_grad=True)

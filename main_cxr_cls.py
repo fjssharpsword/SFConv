@@ -30,44 +30,25 @@ from utils.common import count_bytes
 from nets.resnet import resnet18
 from nets.mobilenetv3 import mobilenet_v3_small
 from nets.pkgs.factorized_conv import weightdecay
+from dsts.vincxr_cls import get_box_dataloader_VIN
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
-max_epoches = 100
-batch_size = 256
-CKPT_PATH = '/data/pycode/SFConv/ckpts/cifar100_resnet_sfconv.pkl'
+max_epoches = 20
+BATCH_SIZE = 256
+CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
+               'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
+CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_cls_resnet_sfconv.pkl'
 #https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
 def Train():
     print('********************load data********************')
-    root = '/data/tmpexec/cifar'
-    if not os.path.exists(root):
-        os.mkdir(root)
-    # Normalize training set together with augmentation
-    transform_train = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.507, 0.487, 0.441], std=[0.267, 0.256, 0.276])
-    ])
-    # if not exist, download mnist dataset
-    train_set = dset.CIFAR100(root=root, train=True, transform=transform_train, download=True)
-    train_size = int(0.8 * len(train_set))#8:2
-    val_size = len(train_set) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(train_set, [train_size, val_size])
-
-    train_loader = torch.utils.data.DataLoader(
-                    dataset=train_dataset,
-                    batch_size=batch_size,
-                    shuffle=True, num_workers=1)
-    val_loader = torch.utils.data.DataLoader(
-                    dataset=val_dataset,
-                    batch_size=batch_size,
-                    shuffle=False, num_workers=1)
-
+    train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
+    test_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
     print ('==>>> total trainning batch number: {}'.format(len(train_loader)))
-    print ('==>>> total validation batch number: {}'.format(len(val_loader)))
+    print ('==>>> total test batch number: {}'.format(len(test_loader)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    model = resnet18(pretrained=False, num_classes=100)
+    model = resnet18(pretrained=False, num_classes=15)
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -81,7 +62,7 @@ def Train():
 
     print('********************begin training!********************')
     log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
-    acc_min = 0.50 #float('inf')
+    acc_min = 0.10 #float('inf')
     for epoch in range(max_epoches):
         since = time.time()
         print('Epoch {}/{}'.format(epoch+1 , max_epoches))
@@ -112,7 +93,7 @@ def Train():
         loss_test = []
         total_cnt, correct_cnt = 0, 0
         with torch.autograd.no_grad():
-            for batch_idx,  (img, lbl) in enumerate(val_loader):
+            for batch_idx,  (img, lbl) in enumerate(test_loader):
                 #forward
                 var_image = torch.autograd.Variable(img).cuda()
                 var_label = torch.autograd.Variable(lbl).cuda()
@@ -135,30 +116,17 @@ def Train():
 
         time_elapsed = time.time() - since
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
-        log_writer.add_scalars('CrossEntropyLoss/CIFAR100-ResNet-SFConv', {'Train':np.mean(loss_train), 'Test':np.mean(loss_test)}, epoch+1)
+        log_writer.add_scalars('CrossEntropyLoss/VINCXR-CLS-ResNet-SFConv', {'Train':np.mean(loss_train), 'Test':np.mean(loss_test)}, epoch+1)
     log_writer.close() #shut up the tensorboard
 
 def Test():
     print('********************load data********************')
-    root = '/data/tmpexec/cifar'
-    if not os.path.exists(root):
-        os.mkdir(root)
-    # Normalize test set same as training set without augmentation
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.507, 0.487, 0.441], std=[0.267, 0.256, 0.276])
-    ])
-    # if not exist, download mnist dataset
-    test_set = dset.CIFAR100(root=root, train=False, transform=transform_test, download=True)
-    test_loader = torch.utils.data.DataLoader(
-                    dataset=test_set,
-                    batch_size=batch_size,
-                    shuffle=False, num_workers=1)
-    print ('==>>> total testing batch number: {}'.format(len(test_loader)))
+    test_loader = get_box_dataloader_VIN(batch_size=32, shuffle=False, num_workers=1)
+    print ('==>>> total test batch number: {}'.format(len(test_loader)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    model = resnet18(pretrained=False, num_classes=100).cuda()
+    model = resnet18(pretrained=False, num_classes=15).cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -168,6 +136,7 @@ def Test():
 
     print('********************begin Testing!********************')
     total_cnt, top1, top5 = 0, 0, 0
+    acc = {0: [], 1: [], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[], 11:[], 12:[], 13:[], 14:[]}
     time_res = []
     with torch.autograd.no_grad():
         for batch_idx,  (img, lbl) in enumerate(test_loader):
@@ -186,6 +155,12 @@ def Test():
             pred_label = pred_label.t()
             pred_label = pred_label.eq(var_label.data.view(1, -1).expand_as(pred_label))
             top5 += pred_label.float().sum()
+
+            for i in range(len(pred_label)):
+                if pred_label[i] == var_label.data[i]:
+                    acc[var_label.data[i]].append(1)
+                else:
+                    acc[var_label.data[i]].append(0)
 
             sys.stdout.write('\r testing process: = {}'.format(batch_idx+1))
             sys.stdout.flush()
@@ -211,8 +186,11 @@ def Test():
     ci  = 1.96 * math.sqrt( (acc * (1 - acc)) / total_cnt) #1.96-95%
     print("\r Top-5 ACC/CI = %.4f/%.4f" % (acc, ci) )
 
+    for i in range(len(CLASS_NAMES)):
+        print('The accuarcy of {} is {:.4f}'.format(CLASS_NAMES[i], np.mean(acc[i])))
+
 def main():
-    Train()
+    #Train()
     Test()
 
 if __name__ == '__main__':

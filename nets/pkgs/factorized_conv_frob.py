@@ -139,7 +139,7 @@ class FactorizedConv(nn.Module):
         self.shape = conv.weight.shape
         a, b, c, d = self.shape
         dim1, dim2 = a * c, b * d
-        self.rank = max(int(round(0.5*rank_scale * min(dim1, dim2))),1) #max(int(round(0.5*rank_scale * dim1)), 1) 
+        self.rank = max(int(round(rank_scale * min(dim1, dim2))),1) #max(int(round(0.5*rank_scale * dim1)), 1) 
         self.U = nn.Parameter(torch.zeros(dim1, self.rank))
         self.VT = nn.Parameter(torch.zeros(self.rank, dim2))
 
@@ -173,11 +173,11 @@ class FactorizedConv(nn.Module):
 
         if self.one_conv: #no compression
             W_ = torch.matmul(self.U, MVT).reshape(out_channels, ks1, in_channels, ks2).transpose(1, 2)
-            W_ = self._l2normalize(W_)
+            #W_ = self._l2normalize(W_)
             return F.conv2d(x, W_, **self.kwargs) # torch.matmul(self.U, MVT).reshape(self.shape), 
                             
         W_ = MVT.T.reshape(in_channels, ks2, 1, self.rank).permute(3, 0, 2, 1)
-        W_ = self._l2normalize(W_)
+        #W_ = self._l2normalize(W_)
         x = F.conv2d(x, 
                      W_, 
                      None,
@@ -187,7 +187,7 @@ class FactorizedConv(nn.Module):
                      groups=self.groups).contiguous()
 
         W_ = self.U.reshape(out_channels, ks1, self.rank, 1).permute(0, 2, 1, 3)
-        W_ = self._l2normalize(W_)
+        #W_ = self._l2normalize(W_)
         return F.conv2d(x, 
                         W_,
                         self.bias,

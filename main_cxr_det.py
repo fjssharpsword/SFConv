@@ -29,26 +29,27 @@ import cv2
 import seaborn as sns
 #define by myself
 from utils.common import compute_iou, count_bytes
-from dsts.vincxr_coco import get_box_dataloader_VIN
+from dsts.vincxr_det import get_box_dataloader_VIN
 from nets.resnet import resnet18
-from nets.densenet import densenet121
+from nets.pkgs.factorized_conv import weightdecay
 
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "7"
-CLASS_NAMES_Vin = ['Average', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
-        'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
-BACKBONE_PARAMS = ['4.0.conv1.weight', '4.0.conv1.weight_v', '4.0.conv1.grouped.weight', '4.0.conv1.weight_orig', '4.0.conv1.weight_p', '4.0.conv1.weight_q',\
-                   '5.0.conv1.weight', '5.0.conv1.weight_v', '5.0.conv1.grouped.weight', '5.0.conv1.weight_orig', '5.0.conv1.weight_p', '5.0.conv1.weight_q', \
-                   '6.0.conv1.weight', '6.0.conv1.weight_v', '6.0.conv1.grouped.weight', '6.0.conv1.weight_orig', '6.0.conv1.weight_p', '6.0.conv1.weight_q', \
-                   '7.0.conv1.weight', '7.0.conv1.weight_v', '7.0.conv1.grouped.weight', '7.0.conv1.weight_orig', '7.0.conv1.weight_p', '7.0.conv1.weight_q' ]
+CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
+               'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
+BACKBONE_PARAMS = ['4.0.conv1.weight', '4.0.conv1.P', '4.0.conv1.Q',\
+                   '5.0.conv1.weight', '5.0.conv1.P', '5.0.conv1.Q', \
+                   '6.0.conv1.weight', '6.0.conv1.P', '6.0.conv1.Q', \
+                   '7.0.conv1.weight', '7.0.conv1.P', '7.0.conv1.Q' ]
 BATCH_SIZE = 8
 MAX_EPOCHS = 20
-NUM_CLASSES =  len(CLASS_NAMES_Vin)
-CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_resnet_sfconv_new.pkl'
+NUM_CLASSES =  len(CLASS_NAMES)
+CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_det_resnet_sfconv.pkl'
 
 def Train():
     print('********************load data********************')
     data_loader_train = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=1)
+    print ('==>>> total trainning batch number: {}'.format(len(data_loader_train)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
@@ -87,6 +88,7 @@ def Train():
                 loss_dict  = model(images,targets)   # Returns losses and detections
                 loss_tensor = sum(loss for loss in loss_dict.values())
                 loss_tensor.backward()
+                weightdecay(model, coef=1E-4) #weightdecay for factorized_conv
                 optimizer_model.step()##update parameters
                 sys.stdout.write('\r Epoch: {} / Step: {} : train loss = {}'.format(epoch+1, batch_idx+1, float('%0.6f'%loss_tensor.item())))
                 sys.stdout.flush()
@@ -114,6 +116,7 @@ def Train():
 def Test():
     print('********************load data********************')
     data_loader_test = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=1)
+    print ('==>>> total test batch number: {}'.format(len(data_loader_test)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
@@ -125,26 +128,14 @@ def Test():
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],output_size=7,sampling_ratio=2)
     model = FasterRCNN(backbone, num_classes=NUM_CLASSES, rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler).cuda()
 
-    #for name, param in backbone.named_parameters():
-    #    print(name,'---', param.size())
+    for name, param in backbone.named_parameters():
+        print(name,'---', param.size())
     
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
         print("=> Loaded well-trained checkpoint from: " + CKPT_PATH)
     model.eval() 
-
-    """
-    #plot the distribution of weights
-    log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
-    epoch = 1
-    for name, param in backbone.named_parameters():
-        #print(name,'---', param.size())
-        if name in ['4.0.conv1.weight_orig','5.0.conv1.weight_orig','6.0.conv1.weight_orig','7.0.conv1.weight_orig']:
-            log_writer.add_histogram('sconv', param.clone().cpu().data.numpy(), epoch)
-            epoch = epoch + 1
-    log_writer.close() #shut up the tensorboard
-    """
     print('********************load model succeed!********************')
 
     print('******* begin testing!*********')
@@ -177,7 +168,7 @@ def Test():
             sys.stdout.write('\r testing process: = {}'.format(batch_idx+1))
             sys.stdout.flush()
     for i in range(NUM_CLASSES):
-        print('The mAP of {} is {:.4f}'.format(CLASS_NAMES_Vin[i], np.mean(mAP[i])))
+        print('The mAP of {} is {:.4f}'.format(CLASS_NAMES[i], np.mean(mAP[i])))
 
 def main():
     Train()

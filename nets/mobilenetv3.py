@@ -15,8 +15,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
 #define by myself
-from nets.pkgs.factorized_conv_spec import SpecConv2d
-from nets.pkgs.factorized_conv_frob import FactorizedConv
+from nets.pkgs.factorized_conv import FactorizedConv
 
 __all__ = ["MobileNetV3", "mobilenet_v3_large", "mobilenet_v3_small"]
 
@@ -26,17 +25,16 @@ model_urls = {
     "mobilenet_v3_small": "https://download.pytorch.org/models/mobilenet_v3_small-047dcff4.pth",
 }
 
-
 class SqueezeExcitation(nn.Module):
     # Implemented as described at Figure 4 of the MobileNetV3 paper
     def __init__(self, input_channels: int, squeeze_factor: int = 4):
         super().__init__()
         squeeze_channels = _make_divisible(input_channels // squeeze_factor, 8)
         #self.fc1 = nn.Conv2d(input_channels, squeeze_channels, 1)
-        self.fc1 = FactorizedConv(nn.Conv2d(input_channels, squeeze_channels, 1), rank_scale=0.5)
+        self.fc1 = FactorizedConv(nn.Conv2d(input_channels, squeeze_channels, 1), rank_scale=0.5, spec=True)
         self.relu = nn.ReLU(inplace=True)
         #self.fc2 = nn.Conv2d(squeeze_channels, input_channels, 1)
-        self.fc2 = FactorizedConv(nn.Conv2d(squeeze_channels, input_channels, 1), rank_scale=0.5)
+        self.fc2 = FactorizedConv(nn.Conv2d(squeeze_channels, input_channels, 1), rank_scale=0.5, spec=True)
 
     def _scale(self, input: Tensor, inplace: bool) -> Tensor:
         scale = F.adaptive_avg_pool2d(input, 1)

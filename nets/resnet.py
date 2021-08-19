@@ -19,8 +19,7 @@ from torch.nn.utils import weight_norm
 from torch.nn.utils import spectral_norm
 from nets.pkgs.tensor_decomposition import TensorTrain, Tucker, CP
 #define by myself
-from nets.pkgs.factorized_conv_spec import SpecConv2d
-from nets.pkgs.factorized_conv_frob import FactorizedConv
+from nets.pkgs.factorized_conv import FactorizedConv
 
 #https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
@@ -42,15 +41,13 @@ def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, d
     """3x3 convolution with padding"""
 
     #return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, groups=groups, bias=False, dilation=dilation)
-    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.5)
-    #return SpecConv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=3, stride=stride, rank_scale=0.5)
+    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.25, spec=True)
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
 
     #return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.5)
-    #return SpecConv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=1, stride=stride, rank_scale=0.5)
+    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.25, spec=True)
     
 class BasicBlock(nn.Module):
     expansion: int = 1
@@ -187,11 +184,11 @@ class ResNet(nn.Module):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        #self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)#adjust the channels of input
-        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)#adjust the channels of input
+        #self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
-        #self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
                                        dilate=replace_stride_with_dilation[0])
@@ -250,7 +247,7 @@ class ResNet(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        #x = self.maxpool(x)
+        x = self.maxpool(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
