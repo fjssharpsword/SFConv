@@ -41,13 +41,13 @@ def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, d
     """3x3 convolution with padding"""
 
     #return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, groups=groups, bias=False, dilation=dilation)
-    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.25, spec=True)
+    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.5, spec=True)
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
 
     #return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.25, spec=True)
+    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.5, spec=True)
     
 class BasicBlock(nn.Module):
     expansion: int = 1
@@ -197,8 +197,8 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
-        #self.fc = nn.Sequential(nn.Linear(512 * block.expansion, num_classes), nn.Sigmoid())
+        #self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.fc = nn.Sequential(nn.Linear(512 * block.expansion, num_classes), nn.Sigmoid()) #for binary cross-entorypy loss
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

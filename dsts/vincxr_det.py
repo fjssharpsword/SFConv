@@ -177,7 +177,7 @@ def get_box_dataloader_VIN(batch_size, shuffle, num_workers):
 if __name__ == "__main__":
 
     #for debug   
-    data_loader_box = get_box_dataloader_VIN(batch_size=8, shuffle=False, num_workers=0)
+    data_loader_box = get_box_dataloader_VIN(batch_size=8, shuffle=True, num_workers=0)
     for batch_idx, (image, target) in enumerate(data_loader_box):
         print(len(image))
         print(len(target))

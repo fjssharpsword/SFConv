@@ -30,9 +30,12 @@ class SqueezeExcitation(nn.Module):
     def __init__(self, input_channels: int, squeeze_factor: int = 4):
         super().__init__()
         squeeze_channels = _make_divisible(input_channels // squeeze_factor, 8)
+
         #self.fc1 = nn.Conv2d(input_channels, squeeze_channels, 1)
         self.fc1 = FactorizedConv(nn.Conv2d(input_channels, squeeze_channels, 1), rank_scale=0.5, spec=True)
+
         self.relu = nn.ReLU(inplace=True)
+
         #self.fc2 = nn.Conv2d(squeeze_channels, input_channels, 1)
         self.fc2 = FactorizedConv(nn.Conv2d(squeeze_channels, input_channels, 1), rank_scale=0.5, spec=True)
 

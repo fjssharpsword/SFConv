@@ -42,7 +42,7 @@ BACKBONE_PARAMS = ['4.0.conv1.weight', '4.0.conv1.P', '4.0.conv1.Q',\
                    '6.0.conv1.weight', '6.0.conv1.P', '6.0.conv1.Q', \
                    '7.0.conv1.weight', '7.0.conv1.P', '7.0.conv1.Q' ]
 BATCH_SIZE = 8
-MAX_EPOCHS = 20
+MAX_EPOCHS = 50
 NUM_CLASSES =  len(CLASS_NAMES)
 CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_det_resnet_sfconv.pkl'
 

@@ -16,6 +16,12 @@ import torch
 from PIL import Image
 import matplotlib.pyplot as plt
 import imageio
+import torch.nn as nn
+import torchvision
+import torch.nn.functional as F
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import confusion_matrix
 
 def count_bytes(file_size):
     '''
@@ -52,6 +58,51 @@ def compute_AUCs(gt, pred, N_CLASSES):
         AUROCs.append(roc_auc_score(gt_np[:, i], pred_np[:, i]))
     return AUROCs
 
+def compute_ROCCurve(gt, pred, N_CLASSES, CLASS_NAMES, dataset_name):
+    #fpr = 1-Specificity, tpr=Sensitivity
+    np.set_printoptions(suppress=True) #to float
+    thresholds = []
+    gt_np = gt.cpu().numpy()
+    pred_np = pred.cpu().numpy()
+    #color ref: https://www.cnblogs.com/darkknightzh/p/6117528.html
+    color_name =['r','b','k','y','c','g','m','tan','gold','gray','coral','peru','lime','plum','seagreen']
+    for i in range(N_CLASSES):
+        fpr, tpr, threshold = roc_curve(gt_np[:, i], pred_np[:, i])
+        auc_score = auc(fpr, tpr)
+        plt.plot(fpr, tpr, c = color_name[i], ls = '--', label = u'{}-AUROC{:.4f}'.format(CLASS_NAMES[i],auc_score))
+        #select the prediction threshold
+        #idx = np.where(tpr>auc_score)[0][0]
+        #thresholds.append(threshold[idx])
+
+    #plot and save
+    plt.plot((0, 1), (0, 1), c = '#808080', lw = 1, ls = '--', alpha = 0.7)
+    plt.xlim((-0.01, 1.02))
+    plt.ylim((-0.01, 1.02))
+    plt.xticks(np.arange(0, 1.1, 0.2))
+    plt.yticks(np.arange(0, 1.1, 0.2))
+    plt.xlabel('1-Specificity')
+    plt.ylabel('Sensitivity')
+    plt.grid(b=True, ls=':')
+    plt.legend(loc='lower right')
+    #plt.title('ROC curve')
+    plt.savefig('/data/pycode/SFConv/imgs' + dataset_name +'_ROCCurve.jpg')
+
+    return thresholds
+    
+def compute_fusion(gt, pred):
+    #pred = F.log_softmax(pred, dim=1) 
+    #pred = pred.max(1,keepdim=True)[1]
+    gt_np = gt.cpu().numpy()[:,1] #positive
+    pred_np = pred.cpu().numpy()[:,1]
+    fpr, tpr, threshold = roc_curve(gt_np, pred_np)
+    auc_score = auc(fpr, tpr)
+    idx = np.where(tpr>auc_score)[0][0]#select the prediction threshold
+    pred_np = np.where(pred_np>threshold[idx], 1, 0)
+    
+    tn, fp, fn, tp = confusion_matrix(gt_np, pred_np).ravel()
+    sen = tp /(tp+fn)
+    spe = tn /(tn+fp)
+    return sen, spe
 
 def compute_iou(rec1, rec2):
     """

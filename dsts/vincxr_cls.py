@@ -58,6 +58,8 @@ class DatasetGenerator(Dataset):
         with open("/data/pycode/SFConv/dsts/teKeys_normal.txt", "wb") as fp:   #Pickling
             pickle.dump(test_keys, fp)
         """
+        self.CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
+                            'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
         annotations = annotations.values #dataframe -> numpy
         image_list = []
         label_list = []
@@ -65,19 +67,27 @@ class DatasetGenerator(Dataset):
             key = annotation[0].split(os.sep)[-1] 
             lbl = int(annotation[2]) #label
             if key in bin_keys:
-                if (lbl == 0) and (key in image_list):
-                    continue
-                else:
-                    image_list.append(key)
-                    label_list.append(lbl)
-
+                if lbl == 0: #no finding
+                    if key not in image_list:
+                        image_list.append(key)
+                        onehot_lbl = np.zeros(len(self.CLASS_NAMES))
+                        onehot_lbl[lbl] = 1
+                        label_list.append(onehot_lbl)
+                else: #disease
+                    if key in image_list:
+                        idx = image_list.index(key)
+                        onehot_lbl = label_list[idx]
+                        onehot_lbl[lbl] = 1
+                    else: #not in image_list
+                        image_list.append(key)
+                        onehot_lbl = np.zeros(len(self.CLASS_NAMES))
+                        onehot_lbl[lbl] = 1
+                        label_list.append(onehot_lbl)
+                    
         self.image_dir = path_to_img_dir
         self.image_list = image_list
         self.label_list = label_list
-        self.classname_to_id = {'No finding':0, 'Aortic enlargement':1, 'Atelectasis':2, 'Calcification':3, 'Cardiomegaly':4,
-    		   	   'Consolidation':5, 'ILD':6, 'Infiltration':7, 'Lung Opacity':8, 'Nodule/Mass':9,
-               	   'Other lesion':10, 'Pleural effusion':11, 'Pleural thickening':12, 'Pneumothorax':13, 'Pulmonary fibrosis':14}
-
+        
     def _transform_tensor(self, img):
         transform_seq = transforms.Compose([transforms.Resize((256,256)),transforms.ToTensor()])
         return transform_seq(img)
@@ -91,6 +101,8 @@ class DatasetGenerator(Dataset):
         """
         #show samples
         #print(pd.value_counts(self.label_list))
+        #for i in range(len(self.CLASS_NAMES)):
+        #    print('The number of {} is {}'.format(self.CLASS_NAMES[i], np.array(self.label_list)[:,i].sum()))
         #image
         key = self.image_list[index]
         img_path = self.image_dir + key + '.jpeg'
@@ -98,7 +110,7 @@ class DatasetGenerator(Dataset):
         image = self._transform_tensor(image)
         #label
         label = self.label_list[index]
-        label = torch.as_tensor(label, dtype=torch.long)
+        label = torch.as_tensor(label, dtype=torch.float32)
         
         return image, label
 
@@ -128,7 +140,7 @@ def get_box_dataloader_VIN(batch_size, shuffle, num_workers):
 if __name__ == "__main__":
 
     #for debug   
-    data_loader_box = get_box_dataloader_VIN(batch_size=8, shuffle=False, num_workers=0)
+    data_loader_box = get_box_dataloader_VIN(batch_size=8, shuffle=True, num_workers=0)
     for batch_idx, (image, label) in enumerate(data_loader_box):
         print(len(image))
         print(len(label))

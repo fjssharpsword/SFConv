@@ -41,7 +41,7 @@ from nets.pkgs.factorized_conv import weightdecay
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 BATCH_SIZE = 16
 MAX_EPOCHS = 200
-CKPT_PATH = '/data/pycode/SFConv/ckpts/fundus_seg_unet_ffconv_1.0.pkl'
+CKPT_PATH = '/data/pycode/SFConv/ckpts/fundus_seg_unet_sfconv_1.0.pkl'
 def Train():
     print('********************load data********************')
     dataloader_train = get_train_dataloader(batch_size=BATCH_SIZE, shuffle=True, num_workers=1)
@@ -115,7 +115,7 @@ def Train():
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
 
         #print the loss
-        log_writer.add_scalars('DiceLoss/Fundus_Seg_UNet_FFConv_1.0', {'train':np.mean(train_loss), 'val':np.mean(test_loss)}, epoch+1)
+        log_writer.add_scalars('DiceLoss/Fundus_Seg_UNet_SFConv_1.0', {'train':np.mean(train_loss), 'val':np.mean(test_loss)}, epoch+1)
     log_writer.close() #shut up the tensorboard
     print("\r Dice of testset = %.4f" % (1-loss_min))
 
@@ -158,7 +158,7 @@ def Test():
     print("\r Dice coefficient = %.4f" % (1-np.mean(dice_coe)))
 
 def main():
-    #Train()
+    Train()
     Test()
 
 if __name__ == '__main__':

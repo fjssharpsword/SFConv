@@ -31,11 +31,13 @@ class FactorizedConv(nn.Module):
             nn.init.kaiming_normal_(self.Q.data)
             #the right largest singular value of W of power iteration (PI)
             self.register_buffer('u', torch.Tensor(1, dim1).normal_())
-        else: # Frobenius norm regularization
-            weight = conv.weight.data.reshape(dim1, dim2)
-            P, Q = self._spectral_init(weight, self.rank)
-            self.P.data[:,:P.shape[1]] = P
-            self.Q.data[:Q.shape[0],:] = Q
+        else: # without Frobenius norm regularization for fair comparison methods of weight decay
+            #weight = conv.weight.data.reshape(dim1, dim2)
+            #P, Q = self._spectral_init(weight, self.rank)
+            #self.P.data[:,:P.shape[1]] = P
+            #self.Q.data[:Q.shape[0],:] = Q
+            nn.init.kaiming_normal_(self.P.data)
+            nn.init.kaiming_normal_(self.Q.data)
 
         self.kwargs = {}
         for name in ['bias', 'stride', 'padding', 'dilation', 'groups']:
