@@ -13,14 +13,8 @@ from collections import OrderedDict
 from torch import Tensor
 from typing import Any, List, Tuple
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
-#https://github.com/pytorch/pytorch/blob/master/torch/nn/utils/weight_norm.py
-from torch.nn.utils import weight_norm 
-#https://github.com/pytorch/pytorch/blob/master/torch/nn/utils/spectral_norm.py
-from torch.nn.utils import spectral_norm
 #define by myself
-#define by myself
-from nets.pkgs.factorized_conv_spec import SpecConv2d
-from nets.pkgs.factorized_conv_frob import FactorizedConv
+from nets.pkgs.factorized_conv import FactorizedConv
 
 #https://github.com/pytorch/vision/blob/master/torchvision/models/densenet.py
 
@@ -49,9 +43,8 @@ class _DenseLayer(nn.Module):
         self.add_module('relu1', nn.ReLU(inplace=True))
 
         self.conv1: nn.Conv2d
-        #self.add_module('conv1', nn.Conv2d(num_input_features, bn_size * growth_rate, kernel_size=1, stride=1, bias=False))
-        #self.add_module('conv1', TensorTrain(in_channels=num_input_features, out_channels=bn_size * growth_rate, kernel_size=1, rank_scale=0.5, dimensions=2, stride=1, padding = 0, bias=False))    
-        self.add_module('conv1', SpecConv2d(in_channels=num_input_features, out_channels=bn_size * growth_rate, kernel_size=1, stride=1, dimensions=2))
+        self.add_module('conv1', nn.Conv2d(num_input_features, bn_size * growth_rate, kernel_size=1, stride=1, bias=False))
+        #self.add_module('conv1', FactorizedConv(nn.Conv2d(num_input_features, bn_size * growth_rate, kernel_size=1, stride=1, bias=False), rank_scale=0.5, spec=True))
 
         self.norm2: nn.BatchNorm2d
         self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate))
@@ -59,9 +52,8 @@ class _DenseLayer(nn.Module):
         self.add_module('relu2', nn.ReLU(inplace=True))
 
         self.conv2: nn.Conv2d
-        #self.add_module('conv2', nn.Conv2d(bn_size * growth_rate, growth_rate, kernel_size=3, stride=1, padding=1, bias=False))     
-        #self.add_module('conv2', TensorTrain(in_channels=bn_size * growth_rate, out_channels=growth_rate, kernel_size=3, rank_scale=0.5, dimensions=2, stride=1, padding = 1, bias=False))
-        self.add_module('conv2', SpecConv2d(in_channels=bn_size * growth_rate, out_channels=growth_rate, kernel_size=3, stride=1, dimensions=2))
+        self.add_module('conv2', nn.Conv2d(bn_size * growth_rate, growth_rate, kernel_size=3, stride=1, padding=1, bias=False))     
+        #self.add_module('conv2', FactorizedConv(nn.Conv2d(bn_size * growth_rate, growth_rate, kernel_size=3, stride=1, padding=1, bias=False), rank_scale=0.5, spec=True))
         
 
         self.drop_rate = float(drop_rate)
@@ -188,8 +180,8 @@ class DenseNet(nn.Module):
 
         # First convolution
         self.features = nn.Sequential(OrderedDict([
-            #('conv0', nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)), #vin-cxr
-            ('conv0', nn.Conv2d(3, num_init_features, kernel_size=3, stride=1, padding=3, bias=False)), #CIFAR
+            ('conv0', nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)), #vin-cxr
+            #('conv0', nn.Conv2d(3, num_init_features, kernel_size=3, stride=1, padding=3, bias=False)), #CIFAR
             ('norm0', nn.BatchNorm2d(num_init_features)),
             ('relu0', nn.ReLU(inplace=True)),
             #('pool0', nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),#CIFAR
@@ -329,7 +321,9 @@ def densenet201(pretrained: bool = False, progress: bool = True, **kwargs: Any) 
 
 if __name__ == "__main__":
     #for debug  
-    x =  torch.rand(2, 1, 32, 32).cuda()
+    x =  torch.rand(2, 3, 256, 256).cuda()
     model = densenet121(pretrained=False, num_classes=10).cuda()
     out = model(x)
     print(out.shape)
+    param = sum(p.numel() for p in model.parameters() if p.requires_grad) #count params of model
+    print("\r Params of model: {}".format(param/(1024*1024)) )

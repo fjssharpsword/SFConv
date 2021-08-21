@@ -28,12 +28,13 @@ import seaborn as sns
 #define by myself
 from utils.common import count_bytes, compute_AUCs
 from nets.resnet import resnet18
-from nets.mobilenetv3 import mobilenet_v3_small
+from nets.densenet import densenet121
+from nets.mobilenetv3 import mobilenet_v3_small, mobilenet_v3_large
 from nets.pkgs.factorized_conv import weightdecay
 from dsts.vincxr_cls import get_box_dataloader_VIN
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
-max_epoches = 50
+max_epoches = 20#50
 BATCH_SIZE = 256
 CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
                'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
@@ -163,7 +164,7 @@ def Test():
     print('The average AUROC is {:.4f}'.format(np.mean(AUROCs)))
 
 def main():
-    Train()
+    #Train()
     Test()
 
 if __name__ == '__main__':

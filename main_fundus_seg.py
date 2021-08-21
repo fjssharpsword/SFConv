@@ -41,7 +41,10 @@ from nets.pkgs.factorized_conv import weightdecay
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 BATCH_SIZE = 16
 MAX_EPOCHS = 200
-CKPT_PATH = '/data/pycode/SFConv/ckpts/fundus_seg_unet_sfconv_1.0.pkl'
+UNET_PARAMS = ['module.up1.conv.double_conv.0.weight', #torch.Size([512, 1024, 3, 3])
+               'module.up1.conv.double_conv.0.P', #torch.Size([1536, 512])
+               'module.up1.conv.double_conv.0.Q'] #torch.Size([512, 3072])
+CKPT_PATH = '/data/pycode/SFConv/ckpts/fundus_seg_unet_conv.pkl'
 def Train():
     print('********************load data********************')
     dataloader_train = get_train_dataloader(batch_size=BATCH_SIZE, shuffle=True, num_workers=1)
@@ -62,6 +65,10 @@ def Train():
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
     criterion = DiceLoss().cuda() #nn.CrossEntropyLoss().cuda()
     print('********************load model succeed!********************')
+    #save the initialing data of weights
+    #for name, param in model.named_parameters():
+    #    if name in UNET_PARAMS:
+    #        print(name,'---', param.size())
 
     print('********************begin training!********************')
     log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
@@ -115,7 +122,7 @@ def Train():
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
 
         #print the loss
-        log_writer.add_scalars('DiceLoss/Fundus_Seg_UNet_SFConv_1.0', {'train':np.mean(train_loss), 'val':np.mean(test_loss)}, epoch+1)
+        log_writer.add_scalars('DiceLoss/Fundus_Seg_UNet_Conv', {'train':np.mean(train_loss), 'val':np.mean(test_loss)}, epoch+1)
     log_writer.close() #shut up the tensorboard
     print("\r Dice of testset = %.4f" % (1-loss_min))
 

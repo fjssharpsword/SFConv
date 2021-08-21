@@ -24,13 +24,13 @@ class DoubleConv(nn.Module):
         self.double_conv = nn.Sequential(
 
             #nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
-            FactorizedConv(nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1), rank_scale=1.0, spec=True),
+            FactorizedConv(nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1), rank_scale=1.0, spec=False),
             
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
 
             #nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
-            FactorizedConv(nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1), rank_scale=1.0, spec=True),
+            FactorizedConv(nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1), rank_scale=1.0, spec=False),
 
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)

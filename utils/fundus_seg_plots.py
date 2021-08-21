@@ -48,7 +48,30 @@ def vis_seg_loss():
     fig.savefig('/data/pycode/SFConv/imgs/dice_loss.png', dpi=300, bbox_inches='tight')
     """
     datas = pd.read_csv('/data/pycode/SFConv/imgs/fundus_seg_diceloss.csv', sep=',')
-    print(datas.shape)
+    datas = datas.values #dataframe -> numpy
+    x_axis = datas[:,0] #epoches
+    conv_tr, conv_te = datas[:, 1], datas[:, 2]
+    ffconv_tr, ffconv_te = datas[:, 3], datas[:, 4] #rank-scale=0.1
+    sfconv_tr, sfconv_te = datas[:, 5], datas[:, 6] #rank-scale=0.1
+
+    fig, axes = plt.subplots(3,1, constrained_layout=True)
+    axes[0].plot(x_axis, conv_tr,'b-',label='train set')
+    axes[0].plot(x_axis, conv_te,'r-',label='test set')
+    axes[0].set_ylabel('Dice loss')
+    axes[0].set_title('Conv')
+    axes[0].legend()
+    axes[1].plot(x_axis, ffconv_tr,'b-',label='train set')
+    axes[1].plot(x_axis, ffconv_te,'r-',label='test set')
+    axes[1].set_ylabel('Dice loss')
+    axes[1].set_title('FFConv')
+    axes[1].legend()
+    axes[2].plot(x_axis, sfconv_tr,'b-',label='train set')
+    axes[2].plot(x_axis, sfconv_te,'r-',label='test set')
+    axes[2].set_xlabel('Epoch')
+    axes[2].set_ylabel('Dice loss')
+    axes[2].set_title('SFConv(Ours)')
+    axes[2].legend()
+    fig.savefig('/data/pycode/SFConv/imgs/dice_loss.png', dpi=300, bbox_inches='tight')
 
 def vis_seg_performance():
 
@@ -59,23 +82,23 @@ def vis_seg_performance():
     conv_param = [16.49, 16.49, 16.49, 16.49, 16.49]
     conv_fps = [9.30, 9.30, 9.30, 9.30, 9.30]
     #FFConv
-    ffconv_dice = [0.9345, 0.9435, 0.9250, 0.9508, 0.9126] #y_axies
+    ffconv_dice = [0.9345, 0.9435, 0.9250, 0.9508, 0.9326] #y_axies
     ffconv_param = [0.10, 1.20, 2.40, 4.78, 9.51]
     ffconv_fps = [9.77, 10.03, 10.10, 10.34, 10.43]
 
     #SFConv
-    sfconv_dice = [0.9445, 0.9, 0.9, 0.9, 0.9] #y_axies
+    sfconv_dice = [0.9445, 0.9330, 0.9341, 0.9626, 0.9439] #y_axies
     sfconv_param = [0.10, 1.20, 2.40, 4.78, 9.51]
     sfconv_fps = [9.57, 10.09, 10.22, 10.28, 10.35]
 
     fig, axes = plt.subplots(3, 1, constrained_layout=True) #figsize=(10,18)
     #fig.suptitle('Performance and efficiency of segmentation for the Fundus dataset')
     axes[0].plot(x_axies, conv_dice,'bo-',label='Conv')
-    axes[0].text(x_axies[0], conv_dice[0], conv_dice[0], ha='left', va='bottom', color='b') #
+    axes[0].text(x_axies[3], conv_dice[3], conv_dice[3], ha='left', va='bottom', color='b') #
     axes[0].plot(x_axies, ffconv_dice,'g+-',label='FFConv')
     #for a, b in zip(x_axies, ffconv_dice):
     #    axes[0].text(a, b, b, ha='center', va='top', color='g')
-    axes[0].text(x_axies[0], ffconv_dice[0], ffconv_dice[0], ha='left', va='bottom', color='g')
+    axes[0].text(x_axies[0], ffconv_dice[0], ffconv_dice[0], ha='left', va='top', color='g')
     axes[0].text(x_axies[1], ffconv_dice[1], ffconv_dice[1], ha='left', va='bottom', color='g')
     axes[0].text(x_axies[2], ffconv_dice[2], ffconv_dice[2], ha='left', va='bottom', color='g')
     axes[0].text(x_axies[3], ffconv_dice[3], ffconv_dice[3], ha='left', va='top', color='g')
@@ -94,10 +117,10 @@ def vis_seg_performance():
     #axes[0].set_xlabel('Rank scale')
     axes[0].set_ylabel('Dice coefficient')
     #axes[0].set_title('Model performance')
-    axes[0].legend()
+    axes[0].legend(loc = 'upper center') #lower left
 
     axes[1].plot(x_axies, conv_param,'bo--',label='Conv')
-    axes[1].text(x_axies[-1], conv_param[-1], conv_param[-1], ha='right', va='top')
+    axes[1].text(x_axies[2], conv_param[-1], conv_param[-1], ha='left', va='top')
     axes[1].plot(x_axies, ffconv_param,'g+-.',label='FFConv')
     for a, b in zip(x_axies, ffconv_param):
         axes[1].text(a, b, b, ha='center', va='bottom')
@@ -123,7 +146,7 @@ def vis_seg_performance():
     """
 
     axes[2].plot(x_axies, conv_fps,'bo-',label='Conv')
-    axes[2].text(x_axies[0], conv_fps[0], conv_fps[0], ha='left', va='bottom', color='b')
+    axes[2].text(x_axies[2], conv_fps[2], conv_fps[2], ha='left', va='bottom', color='b')
     axes[2].plot(x_axies, ffconv_fps,'g+-',label='FFConv')
     #for a, b in zip(x_axies, ffconv_fps):
     #    axes[2].text(a, b, b, ha='right', va='bottom', color='g')
@@ -151,8 +174,8 @@ def vis_seg_performance():
 
 
 def main():
-    #vis_seg_performance()
-    vis_seg_loss()
+    vis_seg_performance()
+    #vis_seg_loss()
     
 
 

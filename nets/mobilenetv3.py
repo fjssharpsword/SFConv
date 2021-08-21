@@ -12,10 +12,7 @@ from functools import partial
 from torch import nn, Tensor
 from torch.nn import functional as F
 from typing import Any, Callable, Dict, List, Optional, Sequence
-
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
-#define by myself
-from nets.pkgs.factorized_conv import FactorizedConv
 
 __all__ = ["MobileNetV3", "mobilenet_v3_large", "mobilenet_v3_small"]
 
@@ -30,14 +27,9 @@ class SqueezeExcitation(nn.Module):
     def __init__(self, input_channels: int, squeeze_factor: int = 4):
         super().__init__()
         squeeze_channels = _make_divisible(input_channels // squeeze_factor, 8)
-
-        #self.fc1 = nn.Conv2d(input_channels, squeeze_channels, 1)
-        self.fc1 = FactorizedConv(nn.Conv2d(input_channels, squeeze_channels, 1), rank_scale=0.5, spec=True)
-
+        self.fc1 = nn.Conv2d(input_channels, squeeze_channels, 1)
         self.relu = nn.ReLU(inplace=True)
-
-        #self.fc2 = nn.Conv2d(squeeze_channels, input_channels, 1)
-        self.fc2 = FactorizedConv(nn.Conv2d(squeeze_channels, input_channels, 1), rank_scale=0.5, spec=True)
+        self.fc2 = nn.Conv2d(squeeze_channels, input_channels, 1)
 
     def _scale(self, input: Tensor, inplace: bool) -> Tensor:
         scale = F.adaptive_avg_pool2d(input, 1)
@@ -84,8 +76,7 @@ class ConvBNActivation(nn.Sequential):
         if activation_layer is None:
             activation_layer = nn.ReLU6
         super().__init__(
-            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, dilation=dilation, groups=groups,
-                      bias=False),
+            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, dilation=dilation, groups=groups, bias=False),
             norm_layer(out_planes),
             activation_layer(inplace=True)
         )
@@ -329,6 +320,11 @@ def mobilenet_v3_small(pretrained: bool = False, progress: bool = True, **kwargs
 if __name__ == "__main__":
     #for debug  
     x =  torch.rand(2, 3, 256, 256).cuda()
-    model = mobilenet_v3_small(pretrained=False, num_classes=15).cuda()
+    model = mobilenet_v3_large(pretrained=False, num_classes=15).cuda() 
     out = model(x)
     print(out.shape)
+    #for name, param in model.named_parameters():
+    #    if param.requires_grad:
+    #        print(name,'---', param.size())
+    param = sum(p.numel() for p in model.parameters() if p.requires_grad) #count params of model
+    print("\r Params of model: {}".format(param/(1024*1024)) )

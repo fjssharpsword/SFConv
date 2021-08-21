@@ -31,6 +31,7 @@ import seaborn as sns
 from utils.common import compute_iou, count_bytes
 from dsts.vincxr_det import get_box_dataloader_VIN
 from nets.resnet import resnet18
+from nets.densenet import densenet121
 from nets.pkgs.factorized_conv import weightdecay
 
 #config
@@ -41,22 +42,22 @@ BACKBONE_PARAMS = ['4.0.conv1.weight', '4.0.conv1.P', '4.0.conv1.Q',\
                    '5.0.conv1.weight', '5.0.conv1.P', '5.0.conv1.Q', \
                    '6.0.conv1.weight', '6.0.conv1.P', '6.0.conv1.Q', \
                    '7.0.conv1.weight', '7.0.conv1.P', '7.0.conv1.Q' ]
-BATCH_SIZE = 8
-MAX_EPOCHS = 50
+BATCH_SIZE = 2
+MAX_EPOCHS = 20
 NUM_CLASSES =  len(CLASS_NAMES)
 CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_det_resnet_sfconv.pkl'
 
 def Train():
     print('********************load data********************')
-    data_loader_train = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=1)
+    data_loader_train = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
     print ('==>>> total trainning batch number: {}'.format(len(data_loader_train)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    resnet = resnet18(pretrained=False, num_classes=NUM_CLASSES).cuda()
-    backbone = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu, resnet.maxpool,resnet.layer1,resnet.layer2,resnet.layer3,resnet.layer4)
-    #backbone = densenet121(pretrained=False, num_classes=NUM_CLASSES).features.cuda()
-    backbone.out_channels = 512 #resnet18=512,  densenet121=1024
+    #resnet = resnet18(pretrained=False, num_classes=NUM_CLASSES).cuda()
+    #backbone = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu, resnet.maxpool,resnet.layer1,resnet.layer2,resnet.layer3,resnet.layer4)
+    backbone = densenet121(pretrained=False, num_classes=NUM_CLASSES).features.cuda()
+    backbone.out_channels = 1024 #resnet18=512,  densenet121=1024
     anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256),),aspect_ratios=((0.5, 1.0, 2.0),))
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],output_size=7,sampling_ratio=2)
     model = FasterRCNN(backbone, num_classes=NUM_CLASSES, rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler).cuda()
@@ -72,7 +73,7 @@ def Train():
     print('********************load model succeed!********************')
 
     print('********************begin training!********************')
-    log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
+    #log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
     loss_min = float('inf')
     for epoch in range(MAX_EPOCHS):
         since = time.time()
@@ -100,7 +101,7 @@ def Train():
             loss_min = np.mean(train_loss)
             torch.save(model.state_dict(), CKPT_PATH) #Saving checkpoint
             print(' Epoch: {} model has been already save!'.format(epoch+1))
-
+        """
         #print the histogram
         if (epoch+1) % 4 == 0:
             for name, param in backbone.named_parameters():
@@ -108,28 +109,28 @@ def Train():
                     log_writer.add_histogram(name + '_data', param.clone().cpu().data.numpy(), epoch)
                     if param.grad is not None: #leaf node in the graph retain gradient
                         log_writer.add_histogram(name + '_grad', param.grad, epoch)
-
+        """
         time_elapsed = time.time() - since
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
-    log_writer.close() #shut up the tensorboard
+    #log_writer.close() #shut up the tensorboard
 
 def Test():
     print('********************load data********************')
-    data_loader_test = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=1)
+    data_loader_test = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
     print ('==>>> total test batch number: {}'.format(len(data_loader_test)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    resnet = resnet18(pretrained=False, num_classes=NUM_CLASSES).cuda()
-    backbone = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu, resnet.maxpool,resnet.layer1,resnet.layer2,resnet.layer3,resnet.layer4)
-    #backbone = densenet121(pretrained=False, num_classes=NUM_CLASSES).features.cuda()
-    backbone.out_channels = 512 #resnet18=512,  densenet121=1024
+    #resnet = resnet18(pretrained=False, num_classes=NUM_CLASSES).cuda()
+    #backbone = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu, resnet.maxpool,resnet.layer1,resnet.layer2,resnet.layer3,resnet.layer4)
+    backbone = densenet121(pretrained=False, num_classes=NUM_CLASSES).features.cuda()
+    backbone.out_channels = 1024 #resnet18=512,  densenet121=1024
     anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256),),aspect_ratios=((0.5, 1.0, 2.0),))
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],output_size=7,sampling_ratio=2)
     model = FasterRCNN(backbone, num_classes=NUM_CLASSES, rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler).cuda()
 
-    for name, param in backbone.named_parameters():
-        print(name,'---', param.size())
+    #for name, param in backbone.named_parameters():
+    #    print(name,'---', param.size())
     
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
@@ -140,12 +141,15 @@ def Test():
 
     print('******* begin testing!*********')
     mAP = {0: [], 1: [], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[], 11:[], 12:[], 13:[], 14:[]}
+    time_res = []
     with torch.autograd.no_grad():
         for batch_idx, (images, targets) in enumerate(data_loader_test):
             images = list(image.cuda() for image in images)
-            #images = list((image*torch.randn(image.size())).cuda() for image in images)#add Gaussian noisy
             targets = [{k:v.squeeze(0).cuda() for k, v in t.items()} for t in targets]
+            start = time.time()
             var_output = model(images)#forward
+            end = time.time()
+            time_res.append(end-start)
         
             for i in range(len(targets)):
                 gt_box = targets[i]['boxes'].cpu().data
@@ -169,6 +173,9 @@ def Test():
             sys.stdout.flush()
     for i in range(NUM_CLASSES):
         print('The mAP of {} is {:.4f}'.format(CLASS_NAMES[i], np.mean(mAP[i])))
+    param = sum(p.numel() for p in model.parameters() if p.requires_grad) #count params of model
+    print("\r Params of model: {}".format(count_bytes(param)) )
+    print("FPS(Frams Per Second) of model = %.2f"% (1.0/(np.sum(time_res)/len(time_res))) )
 
 def main():
     Train()

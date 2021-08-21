@@ -13,11 +13,6 @@ import torchvision
 from torch import Tensor
 from typing import Type, Any, Callable, Union, List, Optional
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
-#https://github.com/pytorch/pytorch/blob/master/torch/nn/utils/weight_norm.py
-from torch.nn.utils import weight_norm 
-#https://github.com/pytorch/pytorch/blob/master/torch/nn/utils/spectral_norm.py
-from torch.nn.utils import spectral_norm
-from nets.pkgs.tensor_decomposition import TensorTrain, Tucker, CP
 #define by myself
 from nets.pkgs.factorized_conv import FactorizedConv
 
@@ -401,3 +396,5 @@ if __name__ == "__main__":
     model = resnet18(pretrained=False, num_classes=15).cuda()
     out = model(x)
     print(out.shape)
+    param = sum(p.numel() for p in model.parameters() if p.requires_grad) #count params of model
+    print("\r Params of model: {}".format(param/(1024*1024)) )

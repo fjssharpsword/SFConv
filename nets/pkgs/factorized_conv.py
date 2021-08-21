@@ -97,7 +97,6 @@ class FactorizedConv(nn.Module):
                         dilation=(self.dilation[0], 1),
                         groups=self.groups).contiguous()
 
-
     def _frobgrad(self, matrices):
 
         assert type(matrices) == list
