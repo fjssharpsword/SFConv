@@ -64,7 +64,7 @@ def calc_stat(data):
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-def main():
+def vis_cxr_data():
  
     print('********************load data********************')
     cxr_set = get_box_dataloader_VIN(batch_size=2, shuffle=True, num_workers=0)
@@ -126,6 +126,59 @@ def main():
 
     fig.savefig('/data/pycode/SFConv/imgs/data_dis.png', dpi=300, bbox_inches='tight')
 
+def vis_cxr_lesion():
+    """
+    print('********************load data********************')
+    cxr_set = get_box_dataloader_VIN(batch_size=1, shuffle=False, num_workers=0)
+    print('********************load data succeed!********************')
+
+    print('*******Calcluation*********')
+    skews = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[], 11:[], 12:[], 13:[], 14:[]}
+    for batch_idx, (images, targets) in enumerate(cxr_set):
+        for i in range(len(targets[0]['labels'])):
+            #data
+            cxr_box = targets[0]['boxes'].numpy()[i]
+            cxr_box = images[0].numpy()[:,int(cxr_box[0]):int(cxr_box[2]),int(cxr_box[1]):int(cxr_box[3])]
+            cxr_box = cxr_box.flatten()
+            try:
+                [_, _, box_skew, _] = calc_stat(cxr_box)
+            except:
+                continue
+            box_lbl = targets[0]['labels'].numpy()[i] #label
+            skews[box_lbl].append(abs(box_skew))
+
+            sys.stdout.write('\r testing process: = {}'.format(batch_idx+1))
+            sys.stdout.flush()
+
+    print('*******Plot*********')
+    skews_avg = []
+    for key in skews.keys():
+        skews_avg.append(np.mean(skews[key]))
+    print(skews_avg)
+    """
+    skews_avg = [0.6647851184382049, 1.2134887321210696, 1.0870273371157367, 0.895383005946241, 0.5418230802887915, 1.3881208990471322, \
+                0.7471606403874295, 0.7374767619287942, 0.9879827125356338, 0.6228555838749348, 0.7489556802321962, 0.9393112767901272, \
+                1.2605938126261683, 0.6262070169396955]
+    class_name = ['Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'Interstitial lung disease', 'Infiltration', \
+               'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
+    data = {'Lesion type': class_name, 'Average skewness': skews_avg}
+    data = pd.DataFrame(data)
+    fig, ax = plt.subplots(1) #figsize=(6,9)
+    ax = sns.barplot(x="Lesion type", y="Average skewness", data=data)
+    for label in ax.xaxis.get_ticklabels():
+        label.set_rotation(90)
+    for p in ax.patches:
+        ax.annotate(format(p.get_height(), '.2f'), 
+                   (p.get_x() + p.get_width() / 2., p.get_height()), 
+                   ha = 'center', va = 'center', 
+                   xytext = (0, 9), 
+                   textcoords = 'offset points')
+    ax.hlines(np.mean(skews_avg), 0, 13, colors = "r", linestyles = "dashed")
+    fig.savefig('/data/pycode/SFConv/imgs/lesion_dis.png', dpi=300, bbox_inches='tight')
+
+def main():
+    #vis_cxr_data()
+    vis_cxr_lesion()
 
 if __name__ == '__main__':
     main()
