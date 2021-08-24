@@ -7,7 +7,7 @@ Ref: https://github.com/pytorch/vision/blob/master/torchvision/models/mobilenetv
 """
 
 import torch
-
+import time
 from functools import partial
 from torch import nn, Tensor
 from torch.nn import functional as F
@@ -179,8 +179,8 @@ class MobileNetV3(nn.Module):
 
         # building first layer
         firstconv_output_channels = inverted_residual_setting[0].input_channels
-        layers.append(ConvBNActivation(3, firstconv_output_channels, kernel_size=3, stride=2, norm_layer=norm_layer,
-                                       activation_layer=nn.Hardswish))
+        layers.append(ConvBNActivation(1, firstconv_output_channels, kernel_size=3, stride=2, norm_layer=norm_layer,
+                                       activation_layer=nn.Hardswish)) #adjust input channels
 
         # building inverted residual blocks
         for cnf in inverted_residual_setting:
@@ -199,6 +199,7 @@ class MobileNetV3(nn.Module):
             nn.Hardswish(inplace=True),
             nn.Dropout(p=0.2, inplace=True),
             nn.Linear(last_channel, num_classes),
+            nn.Sigmoid(), #for bceloss
         )
 
         for m in self.modules():
@@ -319,12 +320,12 @@ def mobilenet_v3_small(pretrained: bool = False, progress: bool = True, **kwargs
 
 if __name__ == "__main__":
     #for debug  
-    x =  torch.rand(2, 3, 256, 256).cuda()
-    model = mobilenet_v3_large(pretrained=False, num_classes=15).cuda() 
+    x =  torch.rand(8, 1, 256, 256).cuda()
+    model = mobilenet_v3_large(pretrained=False, num_classes=6).cuda() 
+    start = time.time()
     out = model(x)
+    end = time.time()
     print(out.shape)
-    #for name, param in model.named_parameters():
-    #    if param.requires_grad:
-    #        print(name,'---', param.size())
     param = sum(p.numel() for p in model.parameters() if p.requires_grad) #count params of model
     print("\r Params of model: {}".format(param/(1024*1024)) )
+    print("FPS(Frams Per Second) of model = %.2f"% (1.0/(end-start)) )

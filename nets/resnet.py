@@ -6,6 +6,7 @@ Update time: 17/08/2021
 """
 import sys
 import math
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -36,13 +37,13 @@ def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, d
     """3x3 convolution with padding"""
 
     #return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, groups=groups, bias=False, dilation=dilation)
-    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.5, spec=True)
+    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.5, spec=False)
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
 
     #return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.5, spec=True)
+    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.5, spec=False)
     
 class BasicBlock(nn.Module):
     expansion: int = 1
@@ -179,8 +180,8 @@ class ResNet(nn.Module):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)#adjust the channels of input
-        #self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)#adjust the channels of input
+        #self.conv1 = nn.Conv2d(2, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -392,9 +393,12 @@ def wide_resnet101_2(pretrained: bool = False, progress: bool = True, **kwargs: 
 
 if __name__ == "__main__":
     #for debug  
-    x =  torch.rand(2, 3, 256, 256).cuda()
-    model = resnet18(pretrained=False, num_classes=15).cuda()
+    x =  torch.rand(8, 1, 256, 256).cuda()
+    model = resnet18(pretrained=False, num_classes=6).cuda()
+    start = time.time()
     out = model(x)
+    end = time.time()
     print(out.shape)
     param = sum(p.numel() for p in model.parameters() if p.requires_grad) #count params of model
     print("\r Params of model: {}".format(param/(1024*1024)) )
+    print("FPS(Frams Per Second) of model = %.2f"% (1.0/(end-start)) )

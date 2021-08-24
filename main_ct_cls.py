@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-Training implementation for Medical-MNIST dataset.  
+Training implementation for COVIDx-CT dataset.  
 Author: Jason.Fang
 Update time: 2w/08/2021
 """
@@ -23,7 +23,7 @@ import math
 from thop import profile
 from tensorboardX import SummaryWriter
 #define by myself
-from utils.common import count_bytes
+from utils.common import count_bytes, compute_AUCs
 from nets.resnet import resnet18
 from nets.densenet import densenet121
 from nets.mobilenetv3 import mobilenet_v3_small, mobilenet_v3_large
@@ -34,22 +34,23 @@ from dsts.med_mnist_cls import get_dataloader_train, get_dataloader_test
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 max_epoches = 50
 batch_size = 256
+CLASS_NAMES = ['Normal','Pneumonia','COVID19']
 RESNET_PARAMS = ['module.4.0.conv1.weight', 'module.4.0.conv1.P', 'module.4.0.conv1.Q',\
                  'module.5.0.conv1.weight', 'module.5.0.conv1.P', 'module.5.0.conv1.Q', \
                  'module.6.0.conv1.weight', 'module.6.0.conv1.P', 'module.6.0.conv1.Q', \
                  'module.7.0.conv1.weight', 'module.7.0.conv1.P', 'module.7.0.conv1.Q' ]
 
-CKPT_PATH = '/data/pycode/SFConv/ckpts/medmnist_mbnet_large.pkl'
+CKPT_PATH = '/data/pycode/SFConv/ckpts/ct_mbnet_small.pkl'
 def Train():
     print('********************load data********************')
     train_loader = get_dataloader_train(batch_size=batch_size, shuffle=True, num_workers=1)
-    test_loader = get_dataloader_test(batch_size=batch_size, shuffle=False, num_workers=1)
+    val_loader = get_dataloader_val(batch_size=batch_size, shuffle=False, num_workers=1)
     print ('==>>> total trainning batch number: {}'.format(len(train_loader)))
-    print ('==>>> total test batch number: {}'.format(len(test_loader)))
+    print ('==>>> total test batch number: {}'.format(len(val_loader)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    model = mobilenet_v3_large(pretrained=False, num_classes=6).cuda()
+    model = mobilenet_v3_small(pretrained=False, num_classes=len(CLASS_NAMES)).cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -58,8 +59,12 @@ def Train():
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
     optimizer_model = optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-5)
     lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
-    criterion = nn.CrossEntropyLoss().cuda()
+    criterion = nn.BCELoss().cuda() #nn.CrossEntropyLoss().cuda()
     print('********************load model succeed!********************')
+
+    #for name, param in model.named_parameters():
+    #    if param.requires_grad:
+    #        print(name,'---', param.size())
 
     print('********************begin training!********************')
     #log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
@@ -92,7 +97,8 @@ def Train():
         #test
         model.eval()
         loss_test = []
-        total_cnt, correct_cnt = 0, 0
+        gt = torch.FloatTensor()
+        pred = torch.FloatTensor()
         with torch.autograd.no_grad():
             for batch_idx,  (img, lbl) in enumerate(test_loader):
                 #forward
@@ -101,13 +107,12 @@ def Train():
                 var_out = model(var_image)
                 loss_tensor = criterion.forward(var_out, var_label)
                 loss_test.append(loss_tensor.item())
-                _, pred_label = torch.max(var_out.data, 1)
-                total_cnt += var_image.data.size()[0]
-                correct_cnt += (pred_label == var_label.data).sum()
+                gt = torch.cat((gt, lbl), 0)
+                pred = torch.cat((pred, var_out.data.cpu()), 0)
                 sys.stdout.write('\r testing process: = {}'.format(batch_idx+1))
                 sys.stdout.flush()
-        acc = correct_cnt * 1.0 / total_cnt
-        print("\r Eopch: %5d val loss = %.6f, ACC = %.6f" % (epoch + 1, np.mean(loss_test), acc) )
+        acc = np.mean(compute_AUCs(gt, pred, len(CLASS_NAMES)))
+        print("\r Eopch: %5d val loss = %.6f, AUROC = %.6f" % (epoch + 1, np.mean(loss_test), acc) )
 
         # save checkpoint
         if acc_min < acc:
@@ -127,7 +132,7 @@ def Test():
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    model = mobilenet_v3_large(pretrained=False, num_classes=6).cuda()
+    model = mobilenet_v3_small(pretrained=False, num_classes=len(CLASS_NAMES)).cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -136,8 +141,9 @@ def Test():
     print('********************load model succeed!********************')
 
     print('********************begin Testing!********************')
-    total_cnt, correct_cnt = 0, 0 
     time_res = []
+    gt = torch.FloatTensor()
+    pred = torch.FloatTensor()
     with torch.autograd.no_grad():
         for batch_idx,  (img, lbl) in enumerate(test_loader):
             #forward
@@ -147,18 +153,23 @@ def Test():
             var_out = model(var_image)
             end = time.time()
             time_res.append(end-start)
-            _, pred_label = torch.max(var_out.data, 1)
-            total_cnt += var_image.data.size()[0]
-            correct_cnt += (pred_label == var_label.data).sum()
+
+            gt = torch.cat((gt, lbl), 0)
+            pred = torch.cat((pred, var_out.data.cpu()), 0)
+
             sys.stdout.write('\r testing process: = {}'.format(batch_idx+1))
             sys.stdout.flush()
-    acc = correct_cnt * 1.0 / total_cnt
-    ci  = 1.96 * math.sqrt( (acc * (1 - acc)) / total_cnt) #1.96-95%
-    print("\r test ACC/CI = %.4f/%.4f" % (acc, ci) )
     
     param = sum(p.numel() for p in model.parameters() if p.requires_grad) #count params of model
     print("\r Params of model: {}".format(count_bytes(param)) )
     print("FPS(Frams Per Second) of model = %.2f"% (1.0/(np.sum(time_res)/len(time_res))) )
+    AUROCs = compute_AUCs(gt, pred, len(CLASS_NAMES))
+    for i in range(len(CLASS_NAMES)):
+        print('The AUROC of {} is {:.4f}'.format(CLASS_NAMES[i], AUROCs[i]))
+    print('The average AUROC is {:.4f}'.format(np.mean(AUROCs)))
+    #save
+    np.save('/data/pycode/SFConv/imgs/ctpred/resnet_conv_gt.npy',gt.numpy()) #np.load()
+    np.save('/data/pycode/SFConv/imgs/ctpred/resnet_conv_pred.npy',gt.numpy())
 
 def main():
     Train()
