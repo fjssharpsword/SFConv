@@ -28,29 +28,28 @@ from nets.resnet import resnet18
 from nets.densenet import densenet121
 from nets.mobilenetv3 import mobilenet_v3_small, mobilenet_v3_large
 from nets.pkgs.factorized_conv import weightdecay
-from dsts.med_mnist_cls import get_dataloader_train, get_dataloader_test
+from dsts.COVIDx_ct import get_dataloader_train, get_dataloader_val, get_dataloader_test
 
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
-max_epoches = 50
+max_epoches = 20 #50
 batch_size = 256
 CLASS_NAMES = ['Normal','Pneumonia','COVID19']
-RESNET_PARAMS = ['module.4.0.conv1.weight', 'module.4.0.conv1.P', 'module.4.0.conv1.Q',\
-                 'module.5.0.conv1.weight', 'module.5.0.conv1.P', 'module.5.0.conv1.Q', \
-                 'module.6.0.conv1.weight', 'module.6.0.conv1.P', 'module.6.0.conv1.Q', \
-                 'module.7.0.conv1.weight', 'module.7.0.conv1.P', 'module.7.0.conv1.Q' ]
+RESNET_PARAMS = ['module.layer1.0.conv1.weight', 'module.layer1.0.conv1.P', 'module.layer1.0.conv1.Q']
+               #['module.layer4.1.conv2.weight', 'module.layer4.1.conv2.P', 'module.layer4.1.conv2.Q']
+DATA_PATH = '/data/pycode/SFConv/imgs/ctpred/'
+CKPT_PATH = '/data/pycode/SFConv/ckpts/ct_resnet_sfconv5.pkl'
 
-CKPT_PATH = '/data/pycode/SFConv/ckpts/ct_mbnet_small.pkl'
 def Train():
     print('********************load data********************')
-    train_loader = get_dataloader_train(batch_size=batch_size, shuffle=True, num_workers=1)
-    val_loader = get_dataloader_val(batch_size=batch_size, shuffle=False, num_workers=1)
+    train_loader = get_dataloader_train(batch_size=batch_size, shuffle=True, num_workers=8)
+    val_loader = get_dataloader_val(batch_size=batch_size, shuffle=False, num_workers=8)
     print ('==>>> total trainning batch number: {}'.format(len(train_loader)))
     print ('==>>> total test batch number: {}'.format(len(val_loader)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    model = mobilenet_v3_small(pretrained=False, num_classes=len(CLASS_NAMES)).cuda()
+    model = resnet18(pretrained=False, num_classes=len(CLASS_NAMES)).cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -62,12 +61,7 @@ def Train():
     criterion = nn.BCELoss().cuda() #nn.CrossEntropyLoss().cuda()
     print('********************load model succeed!********************')
 
-    #for name, param in model.named_parameters():
-    #    if param.requires_grad:
-    #        print(name,'---', param.size())
-
     print('********************begin training!********************')
-    #log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
     acc_min = 0.50 #float('inf')
     for epoch in range(max_epoches):
         since = time.time()
@@ -93,14 +87,21 @@ def Train():
                 sys.stdout.flush()
         lr_scheduler_model.step()  #about lr and gamma
         print("\r Eopch: %5d train loss = %.6f" % (epoch + 1, np.mean(loss_train) ))
-
+        """
+        #print weight data and grad
+        if epoch + 1 == 1 or epoch + 1 == max_epoches:
+            for name, param in model.named_parameters():
+                if param.requires_grad and name in RESNET_PARAMS:
+                    np.save(DATA_PATH + name.split('.')[-1] + str(epoch+1) + '_grad_sfconv25.npy', param.grad.cpu().data.numpy())
+                    np.save(DATA_PATH + name.split('.')[-1] + str(epoch+1) + '_data_sfconv25.npy', param.clone().cpu().data.numpy())
+        """
         #test
         model.eval()
         loss_test = []
         gt = torch.FloatTensor()
         pred = torch.FloatTensor()
         with torch.autograd.no_grad():
-            for batch_idx,  (img, lbl) in enumerate(test_loader):
+            for batch_idx,  (img, lbl) in enumerate(val_loader):
                 #forward
                 var_image = torch.autograd.Variable(img).cuda()
                 var_label = torch.autograd.Variable(lbl).cuda()
@@ -122,23 +123,26 @@ def Train():
 
         time_elapsed = time.time() - since
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
-        #log_writer.add_scalars('CrossEntropyLoss/Medical-MNIST-ResNet', {'Conv':np.mean(loss_train)}, epoch+1)
-    #log_writer.close() #shut up the tensorboard
 
 def Test():
     print('********************load data********************')
-    test_loader = get_dataloader_test(batch_size=batch_size, shuffle=False, num_workers=1)
+    test_loader = get_dataloader_test(batch_size=batch_size, shuffle=False, num_workers=8)
     print ('==>>> total test batch number: {}'.format(len(test_loader)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    model = mobilenet_v3_small(pretrained=False, num_classes=len(CLASS_NAMES)).cuda()
+    model = resnet18(pretrained=False, num_classes=len(CLASS_NAMES)).cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
         print("=> Loaded well-trained checkpoint from: " + CKPT_PATH)
     model.eval()#turn to test mode
     print('********************load model succeed!********************')
+
+    for name, param in model.named_parameters():
+        print(name)
+        if name in RESNET_PARAMS:
+            np.save(DATA_PATH + name.split('.')[-1] + '_sfconv.npy', param.clone().cpu().data.numpy())
 
     print('********************begin Testing!********************')
     time_res = []
@@ -168,11 +172,11 @@ def Test():
         print('The AUROC of {} is {:.4f}'.format(CLASS_NAMES[i], AUROCs[i]))
     print('The average AUROC is {:.4f}'.format(np.mean(AUROCs)))
     #save
-    np.save('/data/pycode/SFConv/imgs/ctpred/resnet_conv_gt.npy',gt.numpy()) #np.load()
-    np.save('/data/pycode/SFConv/imgs/ctpred/resnet_conv_pred.npy',gt.numpy())
+    np.save(DATA_PATH + 'resnet_sfconv25_gt.npy',gt.numpy()) #np.load()
+    np.save(DATA_PATH + 'resnet_sfconv25_pred.npy',pred.numpy())
 
 def main():
-    Train()
+    #Train()
     Test()
 
 if __name__ == '__main__':
