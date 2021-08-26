@@ -121,23 +121,74 @@ def vis_weight():
     model_names=['FFConv', 'SFConv(Ours)']
     root = '/data/pycode/SFConv/imgs/ctpred/'
     #FFConv-0.5
-    ffconv5_p_data = np.load(root + 'P20_data_ffconv5.npy')
-    ffconv5_q_data = np.load(root + 'Q20_data_ffconv5.npy')
+    ffconv_p_data = np.load(root + 'P_ffconv.npy')
+    ffconv_q_data = np.load(root + 'Q_ffconv.npy')
+    ffconv_w_data = np.dot(ffconv_p_data, ffconv_q_data)
     #SFConv-0.5
-    sfconv5_p_data = np.load(root + 'P20_data_sfconv5.npy')
-    sfconv5_q_data = np.load(root + 'Q20_data_sfconv5.npy')
+    sfconv_p_data = np.load(root + 'P_sfconv.npy')
+    sfconv_q_data = np.load(root + 'Q_sfconv.npy')
+    sfconv_w_data = np.dot(sfconv_p_data, sfconv_q_data)
+
+    ffconv_p_data = ffconv_p_data.flatten()
+    ffconv_q_data = ffconv_q_data.flatten()
+    sfconv_p_data = sfconv_p_data.flatten()
+    sfconv_q_data = sfconv_q_data.flatten()
+
+    #calculate svd
+    _, s_ffconv, _ = np.linalg.svd(ffconv_w_data, full_matrices=True)
+    _, s_sfconv, _ = np.linalg.svd(sfconv_w_data, full_matrices=True)
+    #explained variance
+    var_ff = np.round(s_ffconv**2/np.sum(s_ffconv**2), decimals=3)
+    var_ff = var_ff[np.nonzero(var_ff)]
+    var_sf = np.round(s_sfconv**2/np.sum(s_sfconv**2), decimals=3)
+    var_sf = var_sf[np.nonzero(var_sf)]
 
     #sfconv-0.25
-    fig, axes = plt.subplots(2,2,constrained_layout=True)
+    fig, axes = plt.subplots(2,3,constrained_layout=True)
     #FFConv
-    axes[0,0].set_ylabel('FFConv')
-    axes[0,0] = sns.heatmap(ffconv5_p_data)
-    axes[1,0].set_ylabel('SFConv(Ours)')
-    axes[1,0] = sns.heatmap(sfconv5_p_data)
+    axes[0,0].set_ylabel('SFConv (Ours)')
+    axes[0,0].set_title('P, shape=[192,32]')
+    sns.distplot(ffconv_p_data, kde=True, ax=axes[0,0], hist_kws={'color':'green'}, kde_kws={'color':'red'})
+    info = r'$\ variance=%.2f$' %(np.var(ffconv_p_data))
+    axes[0,0].set_xlabel(info)
+
+    axes[0,1].set_title('Q, shape=[32,192]')
+    sns.distplot(ffconv_q_data, kde=True, ax=axes[0,1], hist_kws={'color':'green'}, kde_kws={'color':'red'})
+    info = r'$\ variance=%.2f$' %(np.var(ffconv_q_data))
+    axes[0,1].set_xlabel(info)
+
+    axes[0,2].set_title('W, shape=[192,192]')
+    sns.barplot(x=list(range(1,len(var_sf)+1)), y=var_sf, color="limegreen", ax =axes[0,2] )
+    axes[0,2].set_ylabel('Explained variance (%)')
+    axes[0,2].set_xlabel('Number of non-zero SVs')
+    for ind, label in enumerate(axes[0,2].xaxis.get_ticklabels()):
+        if ind == 0: label.set_visible(True)
+        elif (ind+1) % 8 == 0:  # every 4th label is kept
+            label.set_visible(True)
+        else:
+            label.set_visible(False)
+
+    #SFConv
+    axes[1,0].set_ylabel('FFConv')
+    sns.distplot(sfconv_p_data, kde=True, ax=axes[1,0], hist_kws={'color':'green'}, kde_kws={'color':'red'})
+    info = r'$\ variance=%.2f$' %(np.var(sfconv_p_data))
+    axes[1,0].set_xlabel(info)
+
+    sns.distplot(sfconv_q_data, kde=True, ax=axes[1,1], hist_kws={'color':'green'}, kde_kws={'color':'red'})
+    info = r'$\ variance=%.2f$' %(np.var(sfconv_q_data))
+    axes[1,1].set_xlabel(info)
+
+    sns.barplot(x=list(range(1,len(var_ff)+1)), y=var_ff, color="limegreen", ax =axes[1,2] )
+    axes[1,2].set_ylabel('Explained variance (%)')
+    axes[1,2].set_xlabel('Number of non-zero SVs')
+    for ind, label in enumerate(axes[1,2].xaxis.get_ticklabels()):
+        if ind == 0: label.set_visible(True)
+        elif (ind+1) % 8 == 0:   # every 4th label is kept
+            label.set_visible(True)
+        else:
+            label.set_visible(False)
     
-
     fig.savefig('/data/pycode/SFConv/imgs/CT_weight.png', dpi=300, bbox_inches='tight')
-
 
 def main():
     #vis_auroc()

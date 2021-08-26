@@ -35,10 +35,10 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 max_epoches = 20 #50
 batch_size = 256
 CLASS_NAMES = ['Normal','Pneumonia','COVID19']
-RESNET_PARAMS = ['module.layer1.0.conv1.weight', 'module.layer1.0.conv1.P', 'module.layer1.0.conv1.Q']
+RESNET_PARAMS = ['layer1.0.conv1.P', 'layer1.0.conv1.Q']
                #['module.layer4.1.conv2.weight', 'module.layer4.1.conv2.P', 'module.layer4.1.conv2.Q']
 DATA_PATH = '/data/pycode/SFConv/imgs/ctpred/'
-CKPT_PATH = '/data/pycode/SFConv/ckpts/ct_resnet_sfconv5.pkl'
+CKPT_PATH = '/data/pycode/SFConv/ckpts/ct_resnet_ffconv5.pkl'
 
 def Train():
     print('********************load data********************')
@@ -140,9 +140,8 @@ def Test():
     print('********************load model succeed!********************')
 
     for name, param in model.named_parameters():
-        print(name)
         if name in RESNET_PARAMS:
-            np.save(DATA_PATH + name.split('.')[-1] + '_sfconv.npy', param.clone().cpu().data.numpy())
+            np.save(DATA_PATH + name.split('.')[-1] + '_ffconv.npy', param.clone().cpu().data.numpy())
 
     print('********************begin Testing!********************')
     time_res = []
