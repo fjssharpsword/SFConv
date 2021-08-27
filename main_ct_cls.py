@@ -38,7 +38,7 @@ CLASS_NAMES = ['Normal','Pneumonia','COVID19']
 RESNET_PARAMS = ['layer1.0.conv1.P', 'layer1.0.conv1.Q']
                #['module.layer4.1.conv2.weight', 'module.layer4.1.conv2.P', 'module.layer4.1.conv2.Q']
 DATA_PATH = '/data/pycode/SFConv/imgs/ctpred/'
-CKPT_PATH = '/data/pycode/SFConv/ckpts/ct_resnet_ffconv5.pkl'
+CKPT_PATH = '/data/pycode/SFConv/ckpts/ct_resnet_sfconv.pkl'
 
 def Train():
     print('********************load data********************')
@@ -138,11 +138,11 @@ def Test():
         print("=> Loaded well-trained checkpoint from: " + CKPT_PATH)
     model.eval()#turn to test mode
     print('********************load model succeed!********************')
-
+    """
     for name, param in model.named_parameters():
         if name in RESNET_PARAMS:
             np.save(DATA_PATH + name.split('.')[-1] + '_ffconv.npy', param.clone().cpu().data.numpy())
-
+    """
     print('********************begin Testing!********************')
     time_res = []
     gt = torch.FloatTensor()
@@ -171,11 +171,11 @@ def Test():
         print('The AUROC of {} is {:.4f}'.format(CLASS_NAMES[i], AUROCs[i]))
     print('The average AUROC is {:.4f}'.format(np.mean(AUROCs)))
     #save
-    np.save(DATA_PATH + 'resnet_sfconv25_gt.npy',gt.numpy()) #np.load()
-    np.save(DATA_PATH + 'resnet_sfconv25_pred.npy',pred.numpy())
+    #np.save(DATA_PATH + 'resnet_sfconv_gt.npy',gt.numpy()) #np.load()
+    #np.save(DATA_PATH + 'resnet_sfconv_pred.npy',pred.numpy())
 
 def main():
-    #Train()
+    Train()
     Test()
 
 if __name__ == '__main__':
