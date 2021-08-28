@@ -44,7 +44,7 @@ MAX_EPOCHS = 200
 UNET_PARAMS = ['module.up1.conv.double_conv.0.weight', #torch.Size([512, 1024, 3, 3])
                'module.up1.conv.double_conv.0.P', #torch.Size([1536, 512])
                'module.up1.conv.double_conv.0.Q'] #torch.Size([512, 3072])
-CKPT_PATH = '/data/pycode/SFConv/ckpts/fundus_seg_unet_conv.pkl'
+CKPT_PATH = '/data/pycode/SFConv/ckpts/fundus_seg_unet_sfconv.pkl'
 def Train():
     print('********************load data********************')
     dataloader_train = get_train_dataloader(batch_size=BATCH_SIZE, shuffle=True, num_workers=1)

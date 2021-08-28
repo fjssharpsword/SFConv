@@ -2,7 +2,7 @@
 """
 Factorization Convolutional Layer with Spectral Norm Regularization.
 Author: Jason.Fang
-Update time: 26/08/2021
+Update time: 18/08/2021
 """
 import numpy as np
 import math
@@ -30,8 +30,7 @@ class FactorizedConv(nn.Module):
             nn.init.kaiming_normal_(self.P.data)
             nn.init.kaiming_normal_(self.Q.data)
             #the right largest singular value of W of power iteration (PI)
-            self.register_buffer('u_p', torch.Tensor(1, dim1).normal_())
-            self.register_buffer('u_q', torch.Tensor(1, dim2).normal_())
+            self.register_buffer('u', torch.Tensor(1, dim1).normal_())
         else: # without Frobenius norm regularization for fair comparison methods of weight decay
             #weight = conv.weight.data.reshape(dim1, dim2)
             #P, Q = self._spectral_init(weight, self.rank)
@@ -90,11 +89,8 @@ class FactorizedConv(nn.Module):
         output[-1] = torch.chain_matmul(PM.T, PM, Q)
 
         return output
-
-    #approximated SVD
-    #matrix norm: https://learn.lboro.ac.uk/archive/olmp/olmp_resources/pages/workbooks_1_50_jan2008/Workbook30/30_4_mtrx_norms.pdf
+    
     #https://www.ucg.ac.me/skladiste/blog_10701/objava_23569/fajlovi/power.pdf
-    #https://blog.csdn.net/weixin_42973678/article/details/107801749
     def _l2normalize(self, v, eps=1e-12):
         return v / (torch.norm(v) + eps)
     def _power_iteration(self, W, u=None, Ip=1):
@@ -110,9 +106,9 @@ class FactorizedConv(nn.Module):
         for _ in range(Ip):
             v = self._l2normalize(torch.matmul(u, W.data), eps=1e-12)
             u = self._l2normalize(torch.matmul(v, torch.transpose(W.data, 0, 1)), eps=1e-12)
-        s = (F.linear(u, torch.transpose(W.data, 0, 1)) * v).squeeze()
+        S = (F.linear(u, torch.transpose(W.data, 0, 1)) * v).squeeze()
 
-        return u, s, v #return left vector, sigma, right vector
+        return S, u
 
     def _specgrad(self, matrices):
     
@@ -121,19 +117,17 @@ class FactorizedConv(nn.Module):
         output = [None for _ in matrices]
         P, Q = matrices
 
-        #SVD approximated solve
-        #W_hat = torch.matmul(P, Q)
-        u_p, s_p, v_p = self._power_iteration(P, self.u_p) 
-        self.u_p.copy_(u_p)
-        u_q, s_q, v_q = self._power_iteration(Q.T, self.u_q)
-        self.u_q.copy_(u_q)
+        W_hat = torch.matmul(P, Q)
+        #_, S, _ = torch.svd(W_hat)
+        #_, S, _ =np.linalg.svd(np.dot(P.cpu().numpy(), Q.cpu().numpy()), full_matrices=True)
+        S, u = self._power_iteration(W_hat, self.u)
+        self.u.copy_(u)
 
-        #calculate gradient
         #Nuclear norm: torch.sum(abs(S)) = torch.norm(S, p=1) <==> L1 
         #Frobenius norm: torch.norm(S,p=2) <==> L2 
         #Spectral norm: torch.max(S) = torch.norm(S,float('inf'))
-        output[0] = torch.chain_matmul(P, u_p.T, v_p)#torch.matmul(P, torch.diag(s_p))
-        output[-1] = torch.chain_matmul(Q, v_q.T, u_q) #torch.matmul(torch.diag(s_q), Q)
+        output[0] = torch.max(S)*P 
+        output[-1] = torch.max(S)*Q
 
         return output
 
@@ -172,3 +166,4 @@ if __name__ == "__main__":
     fconv = FactorizedConv(nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding =1, stride=2, bias=False), rank_scale=1.0, spec=False).cuda()
     out = fconv(x)
     print(out.shape)
+
