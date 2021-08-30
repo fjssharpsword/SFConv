@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-Factorization Convolutional Layer with Spectral Norm Regularization.
+Factorization Convolutional Layer with Spectral Decay.
 Author: Jason.Fang
 Update time: 26/08/2021
 """
@@ -26,20 +26,10 @@ class FactorizedConv(nn.Module):
         self.Q = nn.Parameter(torch.zeros(self.rank, dim2))
 
         self.spec = spec
-        if self.spec: #spectral norm regularization
-            nn.init.kaiming_normal_(self.P.data)
-            nn.init.kaiming_normal_(self.Q.data)
-            #the right largest singular value of W of power iteration (PI)
-            self.register_buffer('u_p', torch.Tensor(1, dim1).normal_())
-            self.register_buffer('u_q', torch.Tensor(1, dim2).normal_())
-        else: # without Frobenius norm regularization for fair comparison methods of weight decay
-            #weight = conv.weight.data.reshape(dim1, dim2)
-            #P, Q = self._spectral_init(weight, self.rank)
-            #self.P.data[:,:P.shape[1]] = P
-            #self.Q.data[:Q.shape[0],:] = Q
-            nn.init.kaiming_normal_(self.P.data)
-            nn.init.kaiming_normal_(self.Q.data)
+        nn.init.kaiming_normal_(self.P.data)
+        nn.init.kaiming_normal_(self.Q.data)
 
+        #convolutional parameters
         self.kwargs = {}
         for name in ['bias', 'stride', 'padding', 'dilation', 'groups']:
             attr = getattr(conv, name)
@@ -47,13 +37,6 @@ class FactorizedConv(nn.Module):
             self.kwargs[name] = attr
         delattr(conv, 'weight')
         delattr(conv, 'bias')
-
-    def _spectral_init(self, weight, rank):
-    
-        U, S, V = torch.svd(weight)
-        sqrtS = torch.diag(torch.sqrt(S[:rank]))
-
-        return torch.matmul(U[:,:rank], sqrtS), torch.matmul(V[:,:rank], sqrtS).T
 
     def forward(self, x):
 
@@ -92,27 +75,25 @@ class FactorizedConv(nn.Module):
         return output
 
     #approximated SVD
-    #matrix norm: https://learn.lboro.ac.uk/archive/olmp/olmp_resources/pages/workbooks_1_50_jan2008/Workbook30/30_4_mtrx_norms.pdf
-    #https://www.ucg.ac.me/skladiste/blog_10701/objava_23569/fajlovi/power.pdf
-    #https://blog.csdn.net/weixin_42973678/article/details/107801749
-    def _l2normalize(self, v, eps=1e-12):
-        return v / (torch.norm(v) + eps)
-    def _power_iteration(self, W, u=None, Ip=1):
+    #https://jeremykun.com/2016/05/16/singular-value-decomposition-part-2-theorem-proof-algorithm/
+    def _power_iteration(self, W, eps=1e-10):
         """
         power iteration for max_singular_value
         """
-        #xp = W.data
-        if not Ip >= 1:
-            raise ValueError("Power iteration should be a positive integer")
-        if u is None:
-            u = torch.FloatTensor(1, W.size(0)).normal_(0, 1).cuda()
- 
-        for _ in range(Ip):
-            v = self._l2normalize(torch.matmul(u, W.data), eps=1e-12)
-            u = self._l2normalize(torch.matmul(v, torch.transpose(W.data, 0, 1)), eps=1e-12)
-        s = (F.linear(u, torch.transpose(W.data, 0, 1)) * v).squeeze()
+        v = torch.FloatTensor(W.size(1), 1).normal_(0, 1).cuda()
+        W_s = torch.matmul(W.T, W)
+        while True:
+            v_t = v
+            v = torch.matmul(W_s, v_t)
+            v = v/torch.norm(v)
+            if abs(torch.dot(v.squeeze(), v_t.squeeze())) > 1 - eps: #converged
+                break
 
-        return u, s, v #return left vector, sigma, right vector
+        u = torch.matmul(W, v)
+        s = torch.norm(u)
+        u = u/s
+        #return left vector, sigma, right vector
+        return u, s, v
 
     def _specgrad(self, matrices):
     
@@ -123,17 +104,15 @@ class FactorizedConv(nn.Module):
 
         #SVD approximated solve
         #W_hat = torch.matmul(P, Q)
-        u_p, s_p, v_p = self._power_iteration(P, self.u_p) 
-        self.u_p.copy_(u_p)
-        u_q, s_q, v_q = self._power_iteration(Q.T, self.u_q)
-        self.u_q.copy_(u_q)
+        u_p, s_p, v_p = self._power_iteration(P) 
+        u_q, s_q, v_q = self._power_iteration(Q)
 
         #calculate gradient
         #Nuclear norm: torch.sum(abs(S)) = torch.norm(S, p=1) <==> L1 
         #Frobenius norm: torch.norm(S,p=2) <==> L2 
         #Spectral norm: torch.max(S) = torch.norm(S,float('inf'))
-        output[0] = torch.chain_matmul(P, u_p.T, v_p)#torch.matmul(P, torch.diag(s_p))
-        output[-1] = torch.chain_matmul(Q, v_q.T, u_q) #torch.matmul(torch.diag(s_q), Q)
+        output[0] = torch.matmul(u_p, v_p.T) # *s_p 
+        output[-1] = torch.matmul(u_q, v_q.T) # * s_q
 
         return output
 
