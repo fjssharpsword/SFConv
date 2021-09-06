@@ -36,14 +36,14 @@ model_urls = {
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
 
-    #return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, groups=groups, bias=False, dilation=dilation)
-    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.5, spec=True)
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, groups=groups, bias=False, dilation=dilation)
+    #return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, groups=1, bias=False, dilation=1), rank_scale=0.5, spec=True)
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
 
-    #return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-    return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.5, spec=True)
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+    #return FactorizedConv(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False), rank_scale=0.5, spec=True)
     
 class BasicBlock(nn.Module):
     expansion: int = 1

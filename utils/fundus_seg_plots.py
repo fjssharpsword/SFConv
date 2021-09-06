@@ -59,17 +59,20 @@ def vis_seg_loss():
     axes[0].plot(x_axis, conv_te,'r-',label='test set')
     axes[0].set_ylabel('Dice loss')
     axes[0].set_title('Conv')
+    axes[0].grid()
     axes[0].legend()
     axes[1].plot(x_axis, ffconv_tr,'b-',label='train set')
     axes[1].plot(x_axis, ffconv_te,'r-',label='test set')
     axes[1].set_ylabel('Dice loss')
     axes[1].set_title('FFConv')
+    axes[1].grid()
     axes[1].legend()
     axes[2].plot(x_axis, sfconv_tr,'b-',label='train set')
     axes[2].plot(x_axis, sfconv_te,'r-',label='test set')
     axes[2].set_xlabel('Epoch')
     axes[2].set_ylabel('Dice loss')
     axes[2].set_title('SFConv(Ours)')
+    axes[2].grid()
     axes[2].legend()
     fig.savefig('/data/pycode/SFConv/imgs/dice_loss.png', dpi=300, bbox_inches='tight')
 
@@ -119,17 +122,19 @@ def vis_seg_performance():
     #axes[0].set_title('Model performance')
     axes[0].legend(loc = 'upper center') #lower left
 
-    axes[1].plot(x_axies, conv_param,'bo--',label='Conv')
+    axes[1].plot(x_axies, conv_param,'bo-',label='Conv')
     axes[1].text(x_axies[2], conv_param[-1], conv_param[-1], ha='left', va='top')
-    axes[1].plot(x_axies, ffconv_param,'g+-.',label='FFConv')
+    axes[1].plot(x_axies, ffconv_param,'g+-',label='FFConv')
     for a, b in zip(x_axies, ffconv_param):
         axes[1].text(a, b, b, ha='center', va='bottom')
-    axes[1].plot(x_axies, sfconv_param,'r^--',label='SFConv(Ours)')
+    axes[1].plot(x_axies, sfconv_param,'r^-',label='SFConv(Ours)')
     for a, b in zip(x_axies, sfconv_param):
         axes[1].text(a, b, b, ha='center', va='bottom')
     #axes[1].plot(x_axies, conv_param,'bo-',x_axies, ffconv_param,'g+-',x_axies, sfconv_param,'r^-')
     axes[1].set_xticks([0, 1, 2, 3, 4])
     axes[1].set_xticklabels(['0.1', '0.125', '0.25', '0.5', '1.0'])
+    axes[1].set_yticks([0, 5, 10, 15])
+    axes[1].set_yticklabels(['0.0', '5.0', '10.0', '15.0'])
     #axes[1].set_xlabel('Rank scale')
     axes[1].set_ylabel('Parameters(MB)')
     #axes[1].set_title('Model complexity')
@@ -166,7 +171,7 @@ def vis_seg_performance():
     axes[2].set_xticks([0, 1, 2, 3, 4])
     axes[2].set_xticklabels(['0.1', '0.125', '0.25', '0.5', '1.0'])
     axes[2].set_xlabel('Rank scale')
-    axes[2].set_ylabel('Frams per second(FPS)')
+    axes[2].set_ylabel('Frames per second(FPS)')
     #axes[2].set_title('Speed of model inference')
     axes[2].legend()
 
@@ -174,8 +179,8 @@ def vis_seg_performance():
 
 
 def main():
-    vis_seg_performance()
-    #vis_seg_loss()
+    #vis_seg_performance()
+    vis_seg_loss()
     
 
 
