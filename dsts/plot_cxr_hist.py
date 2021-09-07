@@ -174,6 +174,8 @@ def vis_cxr_lesion():
                    xytext = (0, 9), 
                    textcoords = 'offset points')
     ax.hlines(np.mean(skews_avg), 0, 13, colors = "r", linestyles = "dashed")
+    ax.set_ylim(0.4,1.4)
+    #ax.set_yticklabels(['0.0', '5.0', '10.0', '15.0'])
     fig.savefig('/data/pycode/SFConv/imgs/lesion_dis.png', dpi=300, bbox_inches='tight')
 
 def main():

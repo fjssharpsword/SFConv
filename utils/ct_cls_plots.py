@@ -83,10 +83,16 @@ def vis_auroc():
     
     fig, axes = plt.subplots(1,2, constrained_layout=True, figsize=(10,5))
     color_name =['r','b','k','y','c','g','m'] #color ref: https://www.cnblogs.com/darkknightzh/p/6117528.html
+
+    axins = axes[0].inset_axes((0.2, 0.5, 0.4, 0.4))
+    axins.grid(b=True, ls=':')
     for i in range(len(color_name)):
         fpr, tpr, threshold = roc_curve(np.array(gt_pn[i]), np.array(pd_pn[i]))
         auc_score = auc(fpr, tpr)
         axes[0].plot(fpr, tpr, c = color_name[i], ls = '--', label = u'{}-{:.4f}'.format(model_names[i],auc_score))
+        idx_s = np.where(tpr>0.8)[0][0]
+        idx_e = np.where(fpr<0.2)[0][-1]
+        axins.plot(fpr[idx_s:idx_e], tpr[idx_s:idx_e], c = color_name[i], ls = '--')
 
     axes[0].plot((0, 1), (0, 1), c = '#808080', lw = 1, ls = '--', alpha = 0.7)
     axes[0].set_xlim((-0.01, 1.02))
@@ -99,10 +105,15 @@ def vis_auroc():
     axes[0].legend(loc='lower right')
     axes[0].set_title('Pneumonia')
 
+    axins = axes[1].inset_axes((0.2, 0.5, 0.4, 0.4))
+    axins.grid(b=True, ls=':')
     for i in range(len(color_name)):
         fpr, tpr, threshold = roc_curve(gt_co[i], pd_co[i])
         auc_score = auc(fpr, tpr)
         axes[1].plot(fpr, tpr, c = color_name[i], ls = '--', label = u'{}-{:.4f}'.format(model_names[i],auc_score))
+        idx_s = np.where(tpr>0.8)[0][0]
+        idx_e = np.where(fpr<0.2)[0][-1]
+        axins.plot(fpr[idx_s:idx_e], tpr[idx_s:idx_e], c = color_name[i], ls = '--')
 
     axes[1].plot((0, 1), (0, 1), c = '#808080', lw = 1, ls = '--', alpha = 0.7)
     axes[1].set_xlim((-0.01, 1.02))
@@ -114,6 +125,10 @@ def vis_auroc():
     axes[1].grid(b=True, ls=':')
     axes[1].legend(loc='lower right')
     axes[1].set_title('COVID19')
+
+    #axins = axes[1].inset_axes((0.2, 0.5, 0.4, 0.4))
+    #axins.plot(fpr, tpr, c = color_name[i], ls = '--', label = u'{}-{:.4f}'.format(model_names[i],auc_score))
+    #axins.axis('off')
 
     fig.savefig('/data/pycode/SFConv/imgs/CT_ROCCurve.png', dpi=300, bbox_inches='tight')
 
@@ -191,8 +206,8 @@ def vis_weight():
     fig.savefig('/data/pycode/SFConv/imgs/CT_weight.png', dpi=300, bbox_inches='tight')
 
 def main():
-    #vis_auroc()
-    vis_weight()
+    vis_auroc()
+    #vis_weight()
 
 if __name__ == '__main__':
     main()
