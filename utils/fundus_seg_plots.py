@@ -47,6 +47,8 @@ def vis_seg_loss():
     axes[2].axis('off')
     fig.savefig('/data/pycode/SFConv/imgs/dice_loss.png', dpi=300, bbox_inches='tight')
     """
+
+    """
     datas = pd.read_csv('/data/pycode/SFConv/imgs/fundus_seg_diceloss.csv', sep=',')
     datas = datas.values #dataframe -> numpy
     x_axis = datas[:,0] #epoches
@@ -74,6 +76,24 @@ def vis_seg_loss():
     axes[2].set_title('SFConv(Ours)')
     axes[2].grid()
     axes[2].legend()
+    fig.savefig('/data/pycode/SFConv/imgs/dice_loss.png', dpi=300, bbox_inches='tight')
+    """
+    datas = pd.read_csv('/data/pycode/SFConv/imgs/fundus_seg_diceloss.csv', sep=',')
+    datas = datas.values #dataframe -> numpy
+    x_axis = datas[:,0] #epoches
+    conv_tr, conv_te = datas[:, 1], datas[:, 2]
+    ffconv_tr, ffconv_te = datas[:, 3], datas[:, 4] #rank-scale=0.1
+    sfconv_tr, sfconv_te = datas[:, 5], datas[:, 6] #rank-scale=0.1
+
+    fig, axes = plt.subplots(1)
+    axes.plot(x_axis, conv_te,'g-',label='Conv')
+    axes.plot(x_axis, ffconv_te,'b-',label='FFConv')
+    axes.plot(x_axis, sfconv_te,'r-',label='SFConv(Ours)')
+    axes.set_ylabel('Dice loss')
+    axes.set_xlabel('Epoch')
+    axes.set_title('Dice loss of the test set')
+    axes.grid()
+    axes.legend()
     fig.savefig('/data/pycode/SFConv/imgs/dice_loss.png', dpi=300, bbox_inches='tight')
 
 def vis_seg_performance():

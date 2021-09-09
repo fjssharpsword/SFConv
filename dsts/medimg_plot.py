@@ -53,7 +53,8 @@ def vis_med_img():
                 #img = np.where(img>1, 1, img)
                 axes[0].imshow(img, aspect="auto")
                 axes[0].axis('off')
-                axes[0].set_title('Fundus')
+                axes[0].set_title('Fundus for segmentation')
+                #axes[0].set_xlabel('Segmentation of the optic disc')
                 break
 
     print('********************Chest X-ray********************')
@@ -72,7 +73,8 @@ def vis_med_img():
             axes[1].add_patch(rect)# add groundtruth
             axes[1].text(box[0]-20, box[1]-5, CLASS_NAMES_Vin[lbl])
             axes[1].axis('off')
-            axes[1].set_title('Chest X-ray')
+            axes[1].set_title('Chest X-ray for detection')
+            #axes[1].set_xlabel('Abnormalities detection')
             break
 
     print('********************CT********************')
@@ -83,7 +85,11 @@ def vis_med_img():
                 img = img.squeeze(0).numpy().transpose(1,2,0)
                 axes[2].imshow(img, aspect="auto",cmap='gray')
                 axes[2].axis('off')
-                axes[2].set_title('CT-COVID19')
+                #axes[2].get_xaxis().set_visible(False)
+                #axes[2].get_yaxis().set_visible(False)
+                #axes[2].set_title('CT image \n Classification of pneumonia and COVID19')
+                axes[2].set_title('CT for classification')
+                #axes[2].set_xlabel('Classification of pneumonia and COVID19')
                 break
     fig.savefig('/data/pycode/SFConv/imgs/med_img.png', dpi=300, bbox_inches='tight')
 
