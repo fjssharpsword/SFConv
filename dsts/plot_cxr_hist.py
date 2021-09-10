@@ -178,9 +178,34 @@ def vis_cxr_lesion():
     #ax.set_yticklabels(['0.0', '5.0', '10.0', '15.0'])
     fig.savefig('/data/pycode/SFConv/imgs/lesion_dis.png', dpi=300, bbox_inches='tight')
 
+def vis_cxr_lesion_new():
+    skews_avg = [0.6647851184382049, 1.2134887321210696, 1.0870273371157367, 0.895383005946241, 0.5418230802887915, 1.3881208990471322, \
+                0.7471606403874295, 0.7374767619287942, 0.9879827125356338, 0.6228555838749348, 0.7489556802321962, 0.9393112767901272, \
+                1.2605938126261683, 0.6262070169396955]
+    class_name = ['Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'Interstitial lung disease', 'Infiltration', \
+               'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
+    map_dif_resnet = [0.9736-0.9869, 0.4333-0.2667, 0.2527-0.1429, 0.9971-0.9971, 0.7159-0.7563, 0.8826-0.6854, 0.6284-0.7701, 0.6124-0.7074,\
+                      0.3738-0.2729, 0.3496-0.3602, 0.8465-0.8445, 0.7474-0.6806, 0.6222-0.4222, 0.5271-0.5668]
+    map_dif_densenet = [0.9759-0.9959, 0.4833-0.2333, 0.1868-0.1209, 0.9962-0.9957, 0.7311-0.7479, 0.8310-0.6103, 0.5824-0.7011, 0.6066-0.6550,\
+                        0.3776-0.3028, 0.2606-0.3284, 0.8150-0.8012, 0.7610-0.6388, 0.6000-0.3778, 0.5162-0.5535]
+    data_res = {'Lesion type': class_name, 'Average skewness': skews_avg, 'Difference of average precision': map_dif_resnet, 'Model type': 'ResNet18'}
+    data_des = {'Lesion type': class_name, 'Average skewness': skews_avg, 'Difference of average precision': map_dif_densenet, 'Model type': 'DenseNet121'}  
+    data_res = pd.DataFrame(data_res)
+    data_des = pd.DataFrame(data_des)
+    data = pd.concat([data_res, data_des],axis=0)
+
+    fig, ax = plt.subplots(1) #figsize=(6,9)
+    ax = sns.scatterplot(data=data, x="Average skewness", y="Difference of average precision", hue="Lesion type", style='Model type', sizes=(20, 200))
+    #ax = sns.relplot(x="Average skewness", y="Difference of average precision", hue="Lesion type", style='Model type', size="Lesion type",sizes=(20, 200), data=data) 
+    ax.grid()
+    #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12), fancybox=True, shadow=True, ncol=3)
+    fig.savefig('/data/pycode/SFConv/imgs/lesion_dis_new.png', dpi=300, bbox_inches='tight')
+
 def main():
     #vis_cxr_data()
-    vis_cxr_lesion()
+    #vis_cxr_lesion()
+    vis_cxr_lesion_new()
 
 if __name__ == '__main__':
     main()

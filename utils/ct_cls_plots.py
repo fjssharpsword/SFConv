@@ -206,8 +206,8 @@ def vis_weight():
     fig.savefig('/data/pycode/SFConv/imgs/CT_weight.png', dpi=300, bbox_inches='tight')
 
 def main():
-    vis_auroc()
-    #vis_weight()
+    #vis_auroc()
+    vis_weight()
 
 if __name__ == '__main__':
     main()
