@@ -195,7 +195,7 @@ def vis_cxr_lesion_new():
     data = pd.concat([data_res, data_des],axis=0)
 
     fig, ax = plt.subplots(1) #figsize=(6,9)
-    ax = sns.scatterplot(data=data, x="Average skewness", y="Difference of average precision", hue="Lesion type", style='Model type', sizes=(20, 200))
+    ax = sns.scatterplot(data=data, x="Average skewness", y="Difference of average precision", hue="Lesion type", style='Model type', sizes=(20, 200), s=200)
     #ax = sns.relplot(x="Average skewness", y="Difference of average precision", hue="Lesion type", style='Model type', size="Lesion type",sizes=(20, 200), data=data) 
     ax.grid()
     #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
