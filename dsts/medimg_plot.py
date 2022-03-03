@@ -115,8 +115,45 @@ def vis_med_img():
     fig.savefig('/data/pycode/SFConv/imgs/med_img.png', dpi=300, bbox_inches='tight')
     """
 
+def vis_cxr_det():
+    print('********************Chest X-ray********************')
+    cxr_data = get_box_dataloader_VIN(batch_size=1, shuffle=False, num_workers=0)
+    CLASS_NAMES_Vin = ['No Finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
+        'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
+    with torch.autograd.no_grad():
+        for batch_idx, (images, targets) in enumerate(cxr_data):
+            img = images[0]
+            box = targets[0]['boxes'][0]
+            lbl = targets[0]['labels'][0]
+            #plot goundtruth box
+            img = img.cpu().numpy().transpose(1,2,0)
+
+            fig, axes = plt.subplots(1,2,constrained_layout=True, figsize=(6,3))
+
+            axes[0].imshow(img, aspect="auto")
+            rect_t = patches.Rectangle((box[0], box[1]), box[2]-box[0], box[3]-box[1], linewidth=2, edgecolor='r', facecolor='none')
+            axes[0].add_patch(rect_t)# add groundtruth
+            rect_p = patches.Rectangle((box[0]+6, box[1]-3), box[2]-box[0], box[3]-box[1], linewidth=2, edgecolor='b', facecolor='none')
+            axes[0].add_patch(rect_p)# add groundtruth
+            axes[0].text(box[0]-20, box[1]-5, CLASS_NAMES_Vin[lbl])
+            axes[0].axis('off')
+            axes[0].set_title('Conv(norm CNN)')
+
+            axes[1].imshow(img, aspect="auto")
+            rect_t = patches.Rectangle((box[0], box[1]), box[2]-box[0], box[3]-box[1], linewidth=2, edgecolor='r', facecolor='none')
+            axes[1].add_patch(rect_t)# add groundtruth
+            rect_p = patches.Rectangle((box[0]+3, box[1]+3), box[2]-box[0], box[3]-box[1], linewidth=2, edgecolor='b', facecolor='none')
+            axes[1].add_patch(rect_p)# add groundtruth
+            axes[1].text(box[0]-20, box[1]-5, CLASS_NAMES_Vin[lbl])
+            axes[1].axis('off')
+            axes[1].set_title('SFConv(Ours)')
+
+            fig.savefig('/data/pycode/SFConv/imgs/det_cxr_vis.png', dpi=300, bbox_inches='tight')
+            break
+
 def main():
-    vis_med_img()
+    #vis_med_img()
+    vis_cxr_det()
 
 if __name__ == '__main__':
     main()
