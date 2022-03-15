@@ -38,7 +38,7 @@ from nets.unet_2d import UNet, DiceLoss
 from nets.pkgs.factorized_conv import weightdecay
 
 #config
-os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
+os.environ['CUDA_VISIBLE_DEVICES'] = "4,5,6,7" #"0,1,2,3,4,5,6,7"
 BATCH_SIZE = 16
 MAX_EPOCHS = 200
 UNET_PARAMS = ['module.up1.conv.double_conv.0.weight', #torch.Size([512, 1024, 3, 3])
@@ -71,7 +71,7 @@ def Train():
     #        print(name,'---', param.size())
 
     print('********************begin training!********************')
-    log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
+    #log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
     loss_min = float('inf')
     for epoch in range(MAX_EPOCHS):
         since = time.time()
@@ -88,7 +88,8 @@ def Train():
 
                 optimizer_model.zero_grad()
                 loss_tensor.backward()
-                weightdecay(model, coef=1E-4) #weightdecay for factorized_conv
+                #1e-4, 1e-3, 1e-5
+                weightdecay(model, coef=1E-3) #weightdecay for factorized_conv
                 optimizer_model.step()#update parameters
                 
                 sys.stdout.write('\r Epoch: {} / Step: {} : train loss = {}'.format(epoch+1, batch_idx+1, float('%0.6f'%loss_tensor.item())))
@@ -122,8 +123,8 @@ def Train():
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
 
         #print the loss
-        log_writer.add_scalars('DiceLoss/Fundus_Seg_UNet_Conv', {'train':np.mean(train_loss), 'val':np.mean(test_loss)}, epoch+1)
-    log_writer.close() #shut up the tensorboard
+        #log_writer.add_scalars('DiceLoss/Fundus_Seg_UNet_Conv', {'train':np.mean(train_loss), 'val':np.mean(test_loss)}, epoch+1)
+    #log_writer.close() #shut up the tensorboard
     print("\r Dice of testset = %.4f" % (1-loss_min))
 
 def Test():
@@ -169,4 +170,4 @@ def main():
     Test()
 
 if __name__ == '__main__':
-    main()
+    main() #nohup python main_fundus_seg.py > log/main_fundus_seg.log 2>&1 &

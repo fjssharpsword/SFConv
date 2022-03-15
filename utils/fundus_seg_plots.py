@@ -101,16 +101,16 @@ def vis_seg_performance():
     rank_scale =  [0.1, 0.125, 0.25, 0.5, 1.0] #x_axies
     x_axies = [0, 1, 2, 3, 4]
     #conv 
-    conv_dice = [0.9228, 0.9228, 0.9228, 0.9228, 0.9228] #y_axies
+    conv_dice = [92.28, 92.28, 92.28, 92.28, 92.28] #y_axies
     conv_param = [16.49, 16.49, 16.49, 16.49, 16.49]
     conv_fps = [9.30, 9.30, 9.30, 9.30, 9.30]
     #FFConv
-    ffconv_dice = [0.9345, 0.9435, 0.9250, 0.9508, 0.9326] #y_axies
+    ffconv_dice = [93.45, 94.35, 92.50, 95.08, 93.26] #y_axies
     ffconv_param = [0.10, 1.20, 2.40, 4.78, 9.51]
     ffconv_fps = [9.77, 10.03, 10.10, 10.34, 10.43]
 
     #SFConv
-    sfconv_dice = [0.9445, 0.9330, 0.9341, 0.9626, 0.9439] #y_axies
+    sfconv_dice = [94.45, 93.30, 93.41, 96.26, 94.39] #y_axies
     sfconv_param = [0.10, 1.20, 2.40, 4.78, 9.51]
     sfconv_fps = [9.57, 10.09, 10.22, 10.28, 10.35]
 
@@ -138,7 +138,7 @@ def vis_seg_performance():
     axes[0].set_xticks([0, 1, 2, 3, 4])
     axes[0].set_xticklabels(['0.1', '0.125', '0.25', '0.5', '1.0'])
     #axes[0].set_xlabel('Rank scale')
-    axes[0].set_ylabel('Dice coefficient')
+    axes[0].set_ylabel('Dice coefficient (%)')
     #axes[0].set_title('Model performance')
     axes[0].legend(loc = 'upper center') #lower left
 
@@ -195,12 +195,12 @@ def vis_seg_performance():
     #axes[2].set_title('Speed of model inference')
     axes[2].legend()
 
-    fig.savefig('/data/pycode/SFConv/imgs/fundus_seg.png', dpi=300, bbox_inches='tight')
+    fig.savefig('/data/pycode/SFConv/imgs/fundus_seg_tmi.png', dpi=300, bbox_inches='tight')
 
 
 def main():
-    #vis_seg_performance()
-    vis_seg_loss()
+    vis_seg_performance()
+    #vis_seg_loss()
     
 
 

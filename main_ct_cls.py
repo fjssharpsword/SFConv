@@ -79,7 +79,7 @@ def Train():
                 optimizer_model.zero_grad()
                 loss_tensor = criterion.forward(var_out, var_label) 
                 loss_tensor.backward()
-                weightdecay(model, coef=1E-4) #weightdecay for factorized_conv
+                #weightdecay(model, coef=1E-4) #weightdecay for factorized_conv
                 optimizer_model.step()
                 #show 
                 loss_train.append(loss_tensor.item())
@@ -179,4 +179,4 @@ def main():
     Test()
 
 if __name__ == '__main__':
-    main()
+    main()#nohup python main_ct_cls.py > log/main_ct_cls.log 2>&1 &

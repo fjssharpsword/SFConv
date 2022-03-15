@@ -76,18 +76,19 @@ class FactorizedConv(nn.Module):
 
     #approximated SVD
     #https://jeremykun.com/2016/05/16/singular-value-decomposition-part-2-theorem-proof-algorithm/
-    def _power_iteration(self, W, eps=1e-10):
+    def _power_iteration(self, W, eps=1e-10, Ip=2):
         """
         power iteration for max_singular_value
         """
         v = torch.FloatTensor(W.size(1), 1).normal_(0, 1).cuda()
         W_s = torch.matmul(W.T, W)
-        while True:
+        #while True:
+        for _ in range(Ip):
             v_t = v
             v = torch.matmul(W_s, v_t)
             v = v/torch.norm(v)
-            if abs(torch.dot(v.squeeze(), v_t.squeeze())) > 1 - eps: #converged
-                break
+            #if abs(torch.dot(v.squeeze(), v_t.squeeze())) > 1 - eps: #converged
+            #    break
 
         u = torch.matmul(W, v)
         s = torch.norm(u)
