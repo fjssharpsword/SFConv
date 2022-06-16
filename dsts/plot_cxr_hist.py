@@ -77,7 +77,6 @@ def vis_cxr_data():
 
     print('*******Plot!*********')
     fig, axes = plt.subplots(3,2, constrained_layout=True) #figsize=(6,9)
-
     for batch_idx, (images, masks) in enumerate(voc_set):
         voc_img0 = images[0].numpy().flatten()
         voc_img1 = images[1].numpy().flatten()
@@ -203,9 +202,9 @@ def vis_cxr_lesion_new():
     fig.savefig('/data/pycode/SFConv/imgs/lesion_dis_new.png', dpi=300, bbox_inches='tight')
 
 def main():
-    #vis_cxr_data()
+    vis_cxr_data()
     #vis_cxr_lesion()
-    vis_cxr_lesion_new()
+    #vis_cxr_lesion_new()
 
 if __name__ == '__main__':
     main()

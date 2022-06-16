@@ -12,7 +12,7 @@ import torchvision.datasets as dset
 from tensorboardX import SummaryWriter
 
 resnet18 = models.resnet18(False)
-writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002
+writer = SummaryWriter('/data/tmpexec/tb_log') #--port 10002
 
 
 sample_rate = 44100
