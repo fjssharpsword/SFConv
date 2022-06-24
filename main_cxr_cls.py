@@ -33,13 +33,13 @@ from nets.mobilenetv3 import mobilenet_v3_small, mobilenet_v3_large
 from nets.pkgs.factorized_conv import weightdecay
 from dsts.vincxr_cls import get_box_dataloader_VIN
 #config
-os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
-max_epoches = 20#50
-BATCH_SIZE = 256
+os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5"
+max_epoches = 50
+BATCH_SIZE = 6*32
 CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
                'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
-CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_cls_resnet_sfconv.pkl'
-
+CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_cls_resnet18.pkl'
+#nohup python3 main_cxr_cls.py > log/vincxr_cls_resnet18.log 2>&1 &
 def Train():
     print('********************load data********************')
     train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
@@ -115,9 +115,15 @@ def Train():
             torch.save(model.module.state_dict(), CKPT_PATH) #Saving torch.nn.DataParallel Models
             print(' Epoch: {} model has been already save!'.format(epoch + 1))
 
+        #print the histogram
+        if (epoch+1)==1 or (epoch+1) == max_epoches:
+            for name, param in model.named_parameters():
+                if "conv" in name:
+                    log_writer.add_histogram(name + '_data', param.clone().cpu().data.numpy(), epoch+1)
+
         time_elapsed = time.time() - since
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
-        log_writer.add_scalars('BCELoss/VINCXR-CLS-ResNet-SFConv', {'Train':np.mean(loss_train), 'Test':np.mean(loss_test)}, epoch+1)
+        log_writer.add_scalars('BCELoss/vincxr_cls_resnet18', {'Train':np.mean(loss_train), 'Test':np.mean(loss_test)}, epoch+1)
     log_writer.close() #shut up the tensorboard
 
 def Test():
@@ -164,7 +170,7 @@ def Test():
     print('The average AUROC is {:.4f}'.format(np.mean(AUROCs)))
 
 def main():
-    #Train()
+    Train()
     Test()
 
 if __name__ == '__main__':
