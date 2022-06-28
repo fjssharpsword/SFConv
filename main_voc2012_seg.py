@@ -34,7 +34,7 @@ from utils.common import count_bytes
 from nets.unet_2d import UNet, DiceLoss
 
 #config
-os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5"
 BATCH_SIZE = 256
 MAX_EPOCHS = 200
 CKPT_PATH = '/data/pycode/SFConv/ckpts/voc2012_unet_conv.pkl'

@@ -42,8 +42,8 @@ CKPT_PATH = '/data/pycode/SFConv/ckpts/vincxr_cls_resnet18.pkl'
 #nohup python3 main_cxr_cls.py > log/vincxr_cls_resnet18.log 2>&1 &
 def Train():
     print('********************load data********************')
-    train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
-    test_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+    train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
+    test_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
     print ('==>>> total trainning batch number: {}'.format(len(train_loader)))
     print ('==>>> total test batch number: {}'.format(len(test_loader)))
     print('********************load data succeed!********************')
@@ -62,7 +62,7 @@ def Train():
     print('********************load model succeed!********************')
 
     print('********************begin training!********************')
-    log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
+    log_writer = SummaryWriter('/data/tmpexec/tb_log') #--port 10002, start tensorboard
     acc_min = 0.50
     for epoch in range(max_epoches):
         since = time.time()
@@ -80,7 +80,7 @@ def Train():
                 optimizer_model.zero_grad()
                 loss_tensor = criterion.forward(var_out, var_label) 
                 loss_tensor.backward()
-                weightdecay(model, coef=1E-4) #weightdecay for factorized_conv
+                #weightdecay(model, coef=1E-4) #weightdecay for factorized_conv
                 optimizer_model.step()
                 #show 
                 loss_train.append(loss_tensor.item())
@@ -119,7 +119,7 @@ def Train():
         if (epoch+1)==1 or (epoch+1) == max_epoches:
             for name, param in model.named_parameters():
                 if "conv" in name:
-                    log_writer.add_histogram(name + '_data', param.clone().cpu().data.numpy(), epoch+1)
+                    log_writer.add_histogram(name+"_vincxr", param.clone().cpu().data.numpy(), epoch+1)
 
         time_elapsed = time.time() - since
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
@@ -134,10 +134,25 @@ def Test():
 
     print('********************load model********************')
     model = resnet18(pretrained=False, num_classes=len(CLASS_NAMES)).cuda()
+    """
+    idx = 1
+    for name, param in model.named_parameters():
+        if "conv" in name:
+            #print(str(idx) + "-" +name)
+            np.save('/data/pycode/SFConv/log/cxr/s' + str(idx) +'.npy', param.clone().cpu().data.numpy() )
+            idx = idx +1
+    """
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
         print("=> Loaded well-trained checkpoint from: " + CKPT_PATH)
+    """
+    idx = 1
+    for name, param in model.named_parameters():
+        if "conv" in name:
+            np.save('/data/pycode/SFConv/log/cxr/e' + str(idx) +'.npy', param.clone().cpu().data.numpy() )
+            idx = idx +1
+    """
     model.eval()#turn to test mode
     print('********************load model succeed!********************')
 
@@ -170,7 +185,7 @@ def Test():
     print('The average AUROC is {:.4f}'.format(np.mean(AUROCs)))
 
 def main():
-    Train()
+    #Train()
     Test()
 
 if __name__ == '__main__':

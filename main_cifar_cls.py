@@ -31,10 +31,11 @@ from nets.resnet import resnet18
 from nets.mobilenetv3 import mobilenet_v3_small
 from nets.pkgs.factorized_conv import weightdecay
 #config
-os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
-max_epoches = 100
-batch_size = 256
-CKPT_PATH = '/data/pycode/SFConv/ckpts/cifar100_resnet_sfconv.pkl'
+os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5"
+max_epoches = 50
+batch_size = 192
+CKPT_PATH = '/data/pycode/SFConv/ckpts/cifar100_resnet.pkl'
+#nohup python3 main_cifar_cls.py > log/cifar100_resnet.log 2>&1 &
 #https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
 def Train():
     print('********************load data********************')
@@ -48,7 +49,7 @@ def Train():
         transforms.Normalize(mean=[0.507, 0.487, 0.441], std=[0.267, 0.256, 0.276])
     ])
     # if not exist, download mnist dataset
-    train_set = dset.CIFAR100(root=root, train=True, transform=transform_train, download=True)
+    train_set = dset.CIFAR100(root=root, train=True, transform=transform_train, download=False)
     train_size = int(0.8 * len(train_set))#8:2
     val_size = len(train_set) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(train_set, [train_size, val_size])
@@ -80,7 +81,7 @@ def Train():
     print('********************load model succeed!********************')
 
     print('********************begin training!********************')
-    #log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
+    log_writer = SummaryWriter('/data/tmpexec/tb_log') #--port 10002, start tensorboard
     acc_min = 0.50 #float('inf')
     for epoch in range(max_epoches):
         since = time.time()
@@ -98,7 +99,7 @@ def Train():
                 optimizer_model.zero_grad()
                 loss_tensor = criterion.forward(var_out, var_label) 
                 loss_tensor.backward()
-                weightdecay(model, coef=1E-4) #weightdecay for factorized_conv
+                #weightdecay(model, coef=1E-4) #weightdecay for factorized_conv
                 optimizer_model.step()
                 #show 
                 loss_train.append(loss_tensor.item())
@@ -132,11 +133,17 @@ def Train():
             acc_min = acc
             torch.save(model.module.state_dict(), CKPT_PATH) #Saving torch.nn.DataParallel Models
             print(' Epoch: {} model has been already save!'.format(epoch + 1))
+        
+        #print the histogram
+        if (epoch+1)==1 or (epoch+1) == max_epoches:
+            for name, param in model.named_parameters():
+                if "conv" in name:
+                    log_writer.add_histogram(name+"_cifar", param.clone().cpu().data.numpy(), epoch+1)
 
         time_elapsed = time.time() - since
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
-        #log_writer.add_scalars('CrossEntropyLoss/CIFAR100-ResNet-SFConv', {'Train':np.mean(loss_train), 'Test':np.mean(loss_test)}, epoch+1)
-    #log_writer.close() #shut up the tensorboard
+        log_writer.add_scalars('CELoss/Cifar_resnet18', {'Train':np.mean(loss_train), 'Test':np.mean(loss_test)}, epoch+1)
+    log_writer.close() #shut up the tensorboard
 
 def Test():
     print('********************load data********************')
@@ -149,7 +156,7 @@ def Test():
         transforms.Normalize(mean=[0.507, 0.487, 0.441], std=[0.267, 0.256, 0.276])
     ])
     # if not exist, download mnist dataset
-    test_set = dset.CIFAR100(root=root, train=False, transform=transform_test, download=True)
+    test_set = dset.CIFAR100(root=root, train=False, transform=transform_test, download=False)
     test_loader = torch.utils.data.DataLoader(
                     dataset=test_set,
                     batch_size=batch_size,
@@ -159,10 +166,24 @@ def Test():
 
     print('********************load model********************')
     model = resnet18(pretrained=False, num_classes=100).cuda()
+    """
+    idx = 1
+    for name, param in model.named_parameters():
+        if "conv" in name:
+            np.save('/data/pycode/SFConv/log/cifar/s' + str(idx) +'.npy', param.clone().cpu().data.numpy() )
+            idx = idx +1
+    """
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
         print("=> Loaded well-trained checkpoint from: " + CKPT_PATH)
+    """
+    idx = 1
+    for name, param in model.named_parameters():
+        if "conv" in name:
+            np.save('/data/pycode/SFConv/log/cifar/e' + str(idx) +'.npy', param.clone().cpu().data.numpy() )
+            idx = idx +1
+    """
     model.eval()#turn to test mode
     print('********************load model succeed!********************')
 
@@ -212,7 +233,7 @@ def Test():
     print("\r Top-5 ACC/CI = %.4f/%.4f" % (acc, ci) )
 
 def main():
-    Train()
+    #Train()
     Test()
 
 if __name__ == '__main__':
