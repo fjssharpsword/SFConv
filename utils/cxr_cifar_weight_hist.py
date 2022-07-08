@@ -94,6 +94,7 @@ def vis_weight():
     sns.distplot(nat_s_data, kde=True, ax=axe, hist_kws={'color':'green'}, kde_kws={'color':'green'}, label="Pre-train")
     sns.distplot(nat_e_data, kde=True, ax=axe, hist_kws={'color':'blue'}, kde_kws={'color':'blue'}, label="Post-train (natural images)")
     sns.distplot(med_e_data, kde=True, ax=axe, hist_kws={'color':'red'}, kde_kws={'color':'red'}, label="Post-train (medical images)")
+    axe.grid(b=True, ls=':')
     axe.legend()
 
     #output    
