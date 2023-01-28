@@ -185,7 +185,7 @@ def Test():
     print('The average AUROC is {:.4f}'.format(np.mean(AUROCs)))
 
 def main():
-    #Train()
+    Train()
     Test()
 
 if __name__ == '__main__':
